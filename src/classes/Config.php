@@ -15,9 +15,13 @@ class Config
 
     public function __construct(array $params)
     {
-        $Prettier = new Prettier;
-
-        $this->webui_dir = $Prettier->doAll($params['webui']);
+        $this->webui_dir = (new Prettier())->doAll($params['webui']);
+        /*
+        $this->cfg_array = array_map(
+            fn() => (new Prettier())->doAll($params['configs']),
+            $params['configs']
+        );
+        */
         $this->cfg_array = $params['configs'];
     }
 }

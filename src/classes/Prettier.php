@@ -7,12 +7,19 @@ namespace classes;
 // class to delete unwanted characters in configs
 class Prettier
 {
-    public function doAll(string $target): string
+    public function doAll($target): string
     {
-        $string = "";
+        if (is_array($target)) {
+            // string が出てくるまで再帰する
+            foreach ($target as $item) {
+                return $this->doAll($item);
+            }
+        } else {
+            $string = "";
 
-        $string = $this->removeBothEndsBackslash($this->removeInnerBackslash($target));
-        return $string;
+            $string = $this->removeBothEndsBackslash($this->removeInnerBackslash($target));
+            return $string;
+        }
     }
 
     public function removeInnerBackslash(string $target): string
