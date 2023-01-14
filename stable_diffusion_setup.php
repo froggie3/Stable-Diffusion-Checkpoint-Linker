@@ -5,29 +5,14 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-/*
- * unlink か link かを決定するオプション用の関数
- */
-
+/* オプション用 */
 $options = getopt('hr', ['unlink', 'json:', 'symlink']);
 
-function determine_is_unlink(array &$options): int
-{
-    return (new classes\Option)->is_unlink($options);
-}
+/* オプション用 unlink か link かを決定する */
+$is_unlink = (new classes\Option)->is_unlink($options);
 
-$is_unlink = determine_is_unlink($options);
-
-/*
- * link か symlink かを決定するオプション用の関数
- */
-
- function determine_has_symlink(array &$options): bool
- {
-    return (new classes\Option)->has_symlink($options);
- }
- 
-$has_symlink = determine_has_symlink($options);
+/* オプション用 link か symlink かを決定する */
+$has_symlink = (new classes\Option)->has_symlink($options);
 
 function determine_config_parameters(array &$options): array
 {
@@ -146,14 +131,12 @@ foreach ($Config->cfg_array as $item) {
 }
 
 // 最後にメッセージを表示する
-function show_message(int &$is_unlink): void
+function show_message(int &$is_unlink): string
 {
-    if ($is_unlink === 0) {
-        echo classes\Message::LINKED_OK, "\n";
-    } else {
-        echo classes\Message::UNLINKED_OK, "\n";
-    }
+    return ($is_unlink === 0)
+        ? classes\Message::LINKED_OK . "\n"
+        : classes\Message::UNLINKED_OK . "\n";
 }
 
-show_message($is_unlink);
+echo show_message($is_unlink);
 unset($Config, $Execute, $Prettier);
