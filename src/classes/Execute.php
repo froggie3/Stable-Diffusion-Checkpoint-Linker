@@ -13,22 +13,33 @@ class Execute
     public $filename;
 
 
-    public function execute(string $TMP_SOUR, string $TMP_DEST, int $is_unlink)
-    {
+    public function execute(
+        string $TMP_SOUR,
+        string $TMP_DEST,
+        int $is_unlink,
+        bool $has_symlink = false
+    ) {
         // オプションに応じて違うメソッドを動かす
 
         if ($is_unlink === 0) {
-            $this->mklink($TMP_SOUR, $TMP_DEST);
+            $this->mklink($TMP_SOUR, $TMP_DEST, $has_symlink);
         } else {
             $this->unlink($TMP_DEST);
         }
     }
 
-    public function mklink(string $TMP_SOUR, string $TMP_DEST)
-    {
+    public function mklink(
+        string $TMP_SOUR,
+        string $TMP_DEST,
+        bool $has_symlink
+    ) {
         for ($i = 0; $i <= 1; $i++) {
             if ($i <= 0 && !file_exists($TMP_DEST)) {
-                link($TMP_SOUR, $TMP_DEST);
+                if (!$has_symlink) {
+                    link($TMP_SOUR, $TMP_DEST);
+                } else {
+                    symlink($TMP_SOUR, $TMP_DEST);
+                }
                 echo $TMP_SOUR, ' <===> ', $TMP_DEST, "\n";
             } else {
                 // return error and do nothing for files available

@@ -6,18 +6,28 @@ declare(strict_types=1);
 require_once __DIR__ . '/vendor/autoload.php';
 
 /*
- * オプション用の関数
+ * unlink か link かを決定するオプション用の関数
  */
 
-$options = getopt('hr', ['unlink', 'json:']);
+$options = getopt('hr', ['unlink', 'json:', 'symlink']);
 
-function determine_operation(array &$options): int
+function determine_is_unlink(array &$options): int
 {
-    $Option = new classes\Option;
-    return $Option->is_unlink($options);
+    return (new classes\Option)->is_unlink($options);
 }
 
-(int) $is_unlink = determine_operation($options);
+$is_unlink = determine_is_unlink($options);
+
+/*
+ * link か symlink かを決定するオプション用の関数
+ */
+
+ function determine_has_symlink(array &$options): bool
+ {
+    return (new classes\Option)->has_symlink($options);
+ }
+ 
+$has_symlink = determine_has_symlink($options);
 
 function determine_config_parameters(array &$options): array
 {
@@ -64,12 +74,12 @@ foreach ($Config->cfg_array as $item) {
         $sourcedir = $Prettier->doAll($item['ckpt_dir']);
 
         foreach ($item['model'] as $filename) {
-            $filename = $Prettier->doAll($filename);
-
-            $TMP_SOUR = $sourcedir . '/' . $filename;
-            $TMP_DEST = $Config->webui_dir . '/models/Stable-diffusion/' . $filename;
-
-            $Execute->execute($TMP_SOUR, $TMP_DEST, $is_unlink);
+            $Execute->execute(
+                $sourcedir . '/' . $filename,
+                $Config->webui_dir . '/models/Stable-diffusion/' . $filename,
+                $is_unlink,
+                $has_symlink
+            );
         }
     }
 
@@ -78,12 +88,12 @@ foreach ($Config->cfg_array as $item) {
         $sourcedir = $Prettier->doAll($item['vae_dir']);
 
         foreach ($item['vae'] as $filename) {
-            $filename = $Prettier->doAll($filename);
-
-            $TMP_SOUR = $sourcedir . '/' . $filename;
-            $TMP_DEST = $Config->webui_dir . '/models/VAE/' . $filename;
-
-            $Execute->execute($TMP_SOUR, $TMP_DEST, $is_unlink);
+            $Execute->execute(
+                $sourcedir . '/' . $filename,
+                $Config->webui_dir . '/models/VAE/' . $filename,
+                $is_unlink,
+                $has_symlink
+            );
         }
     }
 
@@ -92,12 +102,12 @@ foreach ($Config->cfg_array as $item) {
         $sourcedir = $Prettier->doAll($item['embeddings_dir']);
 
         foreach ($item['embeddings'] as $filename) {
-            $filename = $Prettier->doAll($filename);
-
-            $TMP_SOUR = $sourcedir . '/' . $filename;
-            $TMP_DEST = $Config->webui_dir . '/embeddings/' . $filename;
-
-            $Execute->execute($TMP_SOUR, $TMP_DEST, $is_unlink);
+            $Execute->execute(
+                $sourcedir . '/' . $filename,
+                $Config->webui_dir . '/embeddings/' . $filename,
+                $is_unlink,
+                $has_symlink
+            );
         }
     }
 
@@ -106,27 +116,30 @@ foreach ($Config->cfg_array as $item) {
         $sourcedir = $Prettier->doAll($item['hn_dir']);
 
         foreach ($item['hypernetworks'] as $filename) {
-            $filename = $Prettier->doAll($filename);
-
-            $TMP_SOUR = $sourcedir . '/' . $filename;
-            $TMP_DEST = $Config->webui_dir . '/models/hypernetworks/' . $filename;
-
-            $Execute->execute($TMP_SOUR, $TMP_DEST, $is_unlink);
+            $Execute->execute(
+                $sourcedir . '/' . $filename,
+                $Config->webui_dir . '/models/hypernetworks/' . $filename,
+                $is_unlink,
+                $has_symlink
+            );
         }
     }
 
     // HyperNetworks for NovelAI
-    if ((isset($item['includes_nai_hypernetworks'])) && ($item['includes_nai_hypernetworks'] === true)) {
+    if (
+        isset($item['includes_nai_hypernetworks'])
+        && $item['includes_nai_hypernetworks']
+    ) {
         $dir_prefix = $Prettier->doAll($item['hn_dir']);
         $Path = new classes\Path($dir_prefix);
 
         foreach ($Path->extract_pt() as $filename) {
-            $filename = $Prettier->doAll($filename);
-
-            $TMP_SOUR = $dir_prefix . '/' . $filename;
-            $TMP_DEST = $Config->webui_dir . '/models/hypernetworks/' . $filename;
-
-            $Execute->execute($TMP_SOUR, $TMP_DEST, $is_unlink);
+            $Execute->execute(
+                $dir_prefix . '/' . $filename,
+                $Config->webui_dir . '/models/hypernetworks/' . $filename,
+                $is_unlink,
+                $has_symlink
+            );
         }
         unset($Path);
     }

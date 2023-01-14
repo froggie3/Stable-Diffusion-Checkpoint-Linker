@@ -25,4 +25,12 @@ class Option
             ? true
             : false;
     }
+
+    // --symlink オプションがあるか？
+    public function has_symlink(array $options): bool
+    {
+        return (isset($options['symlink']))
+            ? true
+            : false;
+    }
 }
