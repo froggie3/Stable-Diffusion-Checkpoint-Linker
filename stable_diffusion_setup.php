@@ -64,12 +64,11 @@ foreach ($Config->cfg_array as $item) {
         $sourcedir = $Prettier->doAll($item['ckpt_dir']);
 
         foreach ($item['model'] as $filename) {
-            $filename = $Prettier->doAll($filename);
-
-            $TMP_SOUR = $sourcedir . '/' . $filename;
-            $TMP_DEST = $Config->webui_dir . '/models/Stable-diffusion/' . $filename;
-
-            $Execute->execute($TMP_SOUR, $TMP_DEST, $is_unlink);
+            $Execute->execute(
+                $sourcedir . '/' . $filename,
+                $Config->webui_dir . '/models/Stable-diffusion/' . $filename,
+                $is_unlink
+            );
         }
     }
 
@@ -78,12 +77,11 @@ foreach ($Config->cfg_array as $item) {
         $sourcedir = $Prettier->doAll($item['vae_dir']);
 
         foreach ($item['vae'] as $filename) {
-            $filename = $Prettier->doAll($filename);
-
-            $TMP_SOUR = $sourcedir . '/' . $filename;
-            $TMP_DEST = $Config->webui_dir . '/models/VAE/' . $filename;
-
-            $Execute->execute($TMP_SOUR, $TMP_DEST, $is_unlink);
+            $Execute->execute(
+                $sourcedir . '/' . $filename,
+                $Config->webui_dir . '/models/VAE/' . $filename,
+                $is_unlink
+            );
         }
     }
 
@@ -92,12 +90,11 @@ foreach ($Config->cfg_array as $item) {
         $sourcedir = $Prettier->doAll($item['embeddings_dir']);
 
         foreach ($item['embeddings'] as $filename) {
-            $filename = $Prettier->doAll($filename);
-
-            $TMP_SOUR = $sourcedir . '/' . $filename;
-            $TMP_DEST = $Config->webui_dir . '/embeddings/' . $filename;
-
-            $Execute->execute($TMP_SOUR, $TMP_DEST, $is_unlink);
+            $Execute->execute(
+                $sourcedir . '/' . $filename,
+                $Config->webui_dir . '/embeddings/' . $filename,
+                $is_unlink
+            );
         }
     }
 
@@ -106,27 +103,28 @@ foreach ($Config->cfg_array as $item) {
         $sourcedir = $Prettier->doAll($item['hn_dir']);
 
         foreach ($item['hypernetworks'] as $filename) {
-            $filename = $Prettier->doAll($filename);
-
-            $TMP_SOUR = $sourcedir . '/' . $filename;
-            $TMP_DEST = $Config->webui_dir . '/models/hypernetworks/' . $filename;
-
-            $Execute->execute($TMP_SOUR, $TMP_DEST, $is_unlink);
+            $Execute->execute(
+                $sourcedir . '/' . $filename,
+                $Config->webui_dir . '/models/hypernetworks/' . $filename,
+                $is_unlink
+            );
         }
     }
 
     // HyperNetworks for NovelAI
-    if ((isset($item['includes_nai_hypernetworks'])) && ($item['includes_nai_hypernetworks'] === true)) {
+    if (
+        isset($item['includes_nai_hypernetworks'])
+        && $item['includes_nai_hypernetworks']
+    ) {
         $dir_prefix = $Prettier->doAll($item['hn_dir']);
         $Path = new classes\Path($dir_prefix);
 
         foreach ($Path->extract_pt() as $filename) {
-            $filename = $Prettier->doAll($filename);
-
-            $TMP_SOUR = $dir_prefix . '/' . $filename;
-            $TMP_DEST = $Config->webui_dir . '/models/hypernetworks/' . $filename;
-
-            $Execute->execute($TMP_SOUR, $TMP_DEST, $is_unlink);
+            $Execute->execute(
+                $dir_prefix . '/' . $filename,
+                $Config->webui_dir . '/models/hypernetworks/' . $filename,
+                $is_unlink
+            );
         }
         unset($Path);
     }
