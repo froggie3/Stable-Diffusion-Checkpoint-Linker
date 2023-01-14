@@ -28,7 +28,7 @@ class Execute
     {
         for ($i = 0; $i <= 1; $i++) {
             if ($i <= 0 && !file_exists($TMP_DEST)) {
-                link($TMP_SOUR, $TMP_DEST);
+                symlink($TMP_SOUR, $TMP_DEST);
                 echo $TMP_SOUR, ' <===> ', $TMP_DEST, "\n";
             } else {
                 // return error and do nothing for files available
