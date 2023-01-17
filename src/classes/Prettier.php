@@ -32,6 +32,7 @@ class Prettier
 
     public function removeBothEndsBackslash(string $target): string
     {
+        // バグ: linux の場合先頭の / が消えてしまう
         $array = [];
         $array_tmp = [];
         $sizeof = 0;

@@ -4,73 +4,41 @@ declare(strict_types=1);
 
 namespace classes;
 
-/*
- * 操作の実行にかかわるやつ
+/* 
+ * オプションに応じてリンク先のファイルの存在を確認してからリンク操作する
  */
 
 class Execute
 {
     public $filename;
 
-
-    public function execute(
-        string $TMP_SOUR,
-        string $TMP_DEST,
-        int $is_unlink,
-        bool $has_symlink = false
-    ) {
-        // オプションに応じて違うメソッドを動かす
-
-        if ($is_unlink === 0) {
-            $this->mklink($TMP_SOUR, $TMP_DEST, $has_symlink);
-        } else {
-            $this->unlink($TMP_DEST);
-        }
-    }
-
-    public function mklink(
-        string $TMP_SOUR,
-        string $TMP_DEST,
-        bool $has_symlink
-    ) {
-        for ($i = 0; $i <= 1; $i++) {
-            if ($i <= 0 && !file_exists($TMP_DEST)) {
-                if (!$has_symlink) {
-                    link($TMP_SOUR, $TMP_DEST);
-                } else {
-                    symlink($TMP_SOUR, $TMP_DEST);
-                }
-                echo $TMP_SOUR, ' <===> ', $TMP_DEST, "\n";
-            } else {
-                // return error and do nothing for files available
-                #printf("%s", $message[3]);
-                break;
-            }
-            if ($i >= 1 && file_exists($TMP_DEST)) {
-                #printf("%s", $message['UNLINKED']);
-                break; // 正常終了
-            } else {
-                break; // 異常終了
-            }
-        }
-    }
-
-    public function unlink(string $TMP_DEST)
+    public function execute(string $src, string $dest)
     {
-        for ($i = 0; $i <= 1; $i++) {
-            if ($i <= 0 && file_exists($TMP_DEST)) {
-                unlink($TMP_DEST);
-                echo 'x=> ', $TMP_DEST, "\n";
-            } else {
-                // return error and do nothing for files unavailable
-                #printf("%s", $message['']);
-                break;
+        // オプションを取得し、unlink か link かを決定する
+        if (!(new Option)->is_unlink(getopt('', ['unlink']))) {
+
+            if (file_exists($dest) === false) {
+
+                // オプションを取得し、link か symlink かを決定する
+                if (!(new Option)->has_symlink(getopt('', ['symlink']))) {
+                    link($src, $dest);
+                } else {
+                    symlink($src, $dest);
+                }
             }
-            if ($i >= 1 && !file_exists($TMP_DEST)) {
-                #printf("%s", $mesage['LINKED']);
-                break; // 正常終了
-            } else {
-                break; // 異常終了
+
+            // リンクが適切に貼られたかどうかを確認する
+            if (file_exists($dest)) {
+                echo $src, ' <===> ', $dest, "\n";
+            }
+        } else {
+            if (file_exists($dest)) {
+                unlink($dest);
+            }
+
+            // リンクが適切に削除されたかどうかを確認する
+            if (!file_exists($dest)) {
+                echo 'x=> ', $dest, "\n";
             }
         }
     }
