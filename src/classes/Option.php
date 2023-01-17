@@ -11,11 +11,11 @@ namespace classes;
 class Option
 {
     // --unlink オプションがあるか？
-    public function is_unlink(array $options): int
+    public function is_unlink(array $options): bool
     {
         return (isset($options['unlink']))
-            ? 1
-            : 0;
+            ? true
+            : false;
     }
 
     // --json オプションがあるか？

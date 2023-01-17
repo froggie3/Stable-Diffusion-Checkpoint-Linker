@@ -6,13 +6,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/vendor/autoload.php';
 
 /* オプション用 */
-$options = getopt('hr', ['unlink', 'json:', 'symlink']);
-
-/* オプション用 unlink か link かを決定する */
-$is_unlink = (new classes\Option)->is_unlink($options);
-
-/* オプション用 link か symlink かを決定する */
-$has_symlink = (new classes\Option)->has_symlink($options);
+$options = getopt(
+    short_options: 'hr',
+    long_options: ['json:',]
+);
 
 function determine_config_parameters(array &$options): array
 {
@@ -52,78 +49,57 @@ $Execute = new classes\Execute;
  * 主要な処理
  */
 
-foreach ($Config->cfg_array as $item) {
 
+# 見通しが悪いのをどうにかする
+# destination の決定は、クラス側で決定した方が良いかも
+# foreach の入力にあたる配列は固定化して、関数の戻り値を受け取るようにする
+
+foreach ($Config->cfg_array as $item) {
     // Checkpoints
     if ((isset($item['model'])) && ($item['model'] !== [])) {
-        $sourcedir = $Prettier->doAll($item['ckpt_dir']);
-
         foreach ($item['model'] as $filename) {
             $Execute->execute(
-                $sourcedir . '/' . $filename,
-                $Config->webui_dir . '/models/Stable-diffusion/' . $filename,
-                $is_unlink,
-                $has_symlink
+                src: $item['ckpt_dir'] . '/' . $filename,
+                dest: $Config->ckpt_dir . $filename
             );
         }
     }
-
     // VAE
     if ((isset($item['vae'])) && ($item['vae'] !== [])) {
-        $sourcedir = $Prettier->doAll($item['vae_dir']);
-
         foreach ($item['vae'] as $filename) {
             $Execute->execute(
-                $sourcedir . '/' . $filename,
-                $Config->webui_dir . '/models/VAE/' . $filename,
-                $is_unlink,
-                $has_symlink
+                src: $item['vae_dir'] . '/' . $filename,
+                dest: $Config->vae_path . $filename
             );
         }
     }
-
     // Embeddings
     if ((isset($item['embeddings'])) && ($item['embeddings'] !== [])) {
-        $sourcedir = $Prettier->doAll($item['embeddings_dir']);
-
         foreach ($item['embeddings'] as $filename) {
             $Execute->execute(
-                $sourcedir . '/' . $filename,
-                $Config->webui_dir . '/embeddings/' . $filename,
-                $is_unlink,
-                $has_symlink
+                src: $item['embeddings_dir'] . '/' . $filename,
+                dest: $Config->embeddings_dir . $filename
             );
         }
     }
-
     // HyperNetworks 
     if ((isset($item['hypernetworks'])) && ($item['hypernetworks'] !== [])) {
-        $sourcedir = $Prettier->doAll($item['hn_dir']);
-
         foreach ($item['hypernetworks'] as $filename) {
             $Execute->execute(
-                $sourcedir . '/' . $filename,
-                $Config->webui_dir . '/models/hypernetworks/' . $filename,
-                $is_unlink,
-                $has_symlink
+                src: $item['hn_dir'] . '/' . $filename,
+                dest: $Config->hypernetwork_dir . $filename
             );
         }
     }
-
     // HyperNetworks for NovelAI
-    if (
-        isset($item['includes_nai_hypernetworks'])
-        && $item['includes_nai_hypernetworks']
-    ) {
+    if (isset($item['includes_nai_hypernetworks']) && $item['includes_nai_hypernetworks']) {
         $dir_prefix = $Prettier->doAll($item['hn_dir']);
         $Path = new classes\Path($dir_prefix);
 
         foreach ($Path->extract_pt() as $filename) {
             $Execute->execute(
-                $dir_prefix . '/' . $filename,
-                $Config->webui_dir . '/models/hypernetworks/' . $filename,
-                $is_unlink,
-                $has_symlink
+                src: $dir_prefix . '/' . $filename,
+                dest: $Config->hypernetwork_dir. $filename
             );
         }
         unset($Path);
@@ -138,5 +114,5 @@ function show_message(int &$is_unlink): string
         : classes\Message::UNLINKED_OK . "\n";
 }
 
-echo show_message($is_unlink);
+#echo show_message($is_unlink);
 unset($Config, $Execute, $Prettier);
