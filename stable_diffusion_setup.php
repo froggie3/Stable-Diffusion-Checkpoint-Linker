@@ -59,7 +59,7 @@ foreach ($Config->cfg_array as $item) {
     if ((isset($item['model'])) && ($item['model'] !== [])) {
         foreach ($item['model'] as $filename) {
             $Execute->execute(
-                src: $item['ckpt_dir'] . '/' . $filename,
+                src: (new classes\Prettier)->fix_slash($item['ckpt_dir']) . $filename,
                 dest: $Config->ckpt_dir . $filename
             );
         }
@@ -68,7 +68,7 @@ foreach ($Config->cfg_array as $item) {
     if ((isset($item['vae'])) && ($item['vae'] !== [])) {
         foreach ($item['vae'] as $filename) {
             $Execute->execute(
-                src: $item['vae_dir'] . '/' . $filename,
+                src: (new classes\Prettier)->fix_slash($item['vae_dir']) . $filename,
                 dest: $Config->vae_path . $filename
             );
         }
@@ -77,7 +77,7 @@ foreach ($Config->cfg_array as $item) {
     if ((isset($item['embeddings'])) && ($item['embeddings'] !== [])) {
         foreach ($item['embeddings'] as $filename) {
             $Execute->execute(
-                src: $item['embeddings_dir'] . '/' . $filename,
+                src: (new classes\Prettier)->fix_slash($item['embeddings_dir']) . $filename,
                 dest: $Config->embeddings_dir . $filename
             );
         }
@@ -86,20 +86,22 @@ foreach ($Config->cfg_array as $item) {
     if ((isset($item['hypernetworks'])) && ($item['hypernetworks'] !== [])) {
         foreach ($item['hypernetworks'] as $filename) {
             $Execute->execute(
-                src: $item['hn_dir'] . '/' . $filename,
+                src: (new classes\Prettier)->fix_slash($item['hn_dir']) . $filename,
                 dest: $Config->hypernetwork_dir . $filename
             );
         }
     }
     // HyperNetworks for NovelAI
     if (isset($item['includes_nai_hypernetworks']) && $item['includes_nai_hypernetworks']) {
-        $dir_prefix = $Prettier->doAll($item['hn_dir']);
+        $dir_prefix = (new classes\Prettier)->fix_slash($item['hn_dir']);
+
+        // クラスの初期化
         $Path = new classes\Path($dir_prefix);
 
         foreach ($Path->extract_pt() as $filename) {
             $Execute->execute(
-                src: $dir_prefix . '/' . $filename,
-                dest: $Config->hypernetwork_dir. $filename
+                src: $dir_prefix . $filename,
+                dest: $Config->hypernetwork_dir . $filename
             );
         }
         unset($Path);

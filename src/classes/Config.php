@@ -19,18 +19,20 @@ class Config
 
     public function __construct(array $params)
     {
-        function exists(string $target_dir): string {
-            if (! file_exists($target_dir)) {
-                exit;
+        function call(string $target_dir): string {
+            if (!file_exists($target_dir)) {
+                mkdir($target_dir);
             }
-            return $target_dir; 
+
+            // スラッシュの処理
+            return (new Prettier)->fix_slash($target_dir);
         }
 
-        $this->webui_dir = exists($params['webui']);
-        $this->ckpt_dir = exists($params['ckpt-dir']);
-        $this->embeddings_dir = exists($params['embeddings-dir']);
-        $this->hypernetwork_dir = exists($params['hypernetwork-dir']);
-        $this->vae_path = exists($params['vae-path']);
+        $this->webui_dir = call($params['webui']);
+        $this->ckpt_dir = call($params['ckpt-dir']);
+        $this->embeddings_dir = call($params['embeddings-dir']);
+        $this->hypernetwork_dir = call($params['hypernetwork-dir']);
+        $this->vae_path = call($params['vae-path']);
         /*
         $this->cfg_array = array_map(
             fn() => (new Prettier())->doAll($params['configs']),

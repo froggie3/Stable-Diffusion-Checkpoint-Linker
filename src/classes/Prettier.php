@@ -15,40 +15,30 @@ class Prettier
                 return $this->doAll($item);
             }
         } else {
-            $string = "";
-
-            $string = $this->removeBothEndsBackslash($this->removeInnerBackslash($target));
-            return $string;
+            return $this->fix_slash($this->removeInnerBackslash($target));
         }
     }
 
     public function removeInnerBackslash(string $target): string
     {
-        $string = "";
-
-        $string = str_replace('\\', '/', str_replace('..', '', $target));
-        return $string;
+        return str_replace(search: '\\', replace: '/', subject: $target);
     }
 
-    public function removeBothEndsBackslash(string $target): string
+    public function remove_double_dots(string $target): string
     {
-        // バグ: linux の場合先頭の / が消えてしまう
-        $array = [];
-        $array_tmp = [];
-        $sizeof = 0;
+        return str_replace(search: '..', replace: '', subject: $target);
+    }
 
-        $array = str_split($target); // unneeded '/' on head and tail
-        $sizeof = count($array) - 1;
+    public function fix_slash(string $target): string
+    {
+        // 余分なスラッシュを削除
+        $target = preg_replace('/\/+$/', '/', $target);
 
-        // Trim if the last item is '/'
-        if ($array[$sizeof] === '/') {
-            $sizeof = $sizeof - 1;
+        // 行末のスラッシュがない場合は追加
+        if (strlen($target) !== strrpos($target, '/') + 1) {
+            $target .= '/';
         }
 
-        // Trim if the first item is '/'
-        for ($i = ($array[0] === '/') ? 1 : 0; $i <= $sizeof; $i++) {
-            $array_tmp[] = $array[$i];
-        }
-        return implode('', $array_tmp);
+        return $target;
     }
 }
