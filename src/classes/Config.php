@@ -21,7 +21,8 @@ class Config
     {
         function call(string $target_dir): string {
             if (!file_exists($target_dir)) {
-                mkdir($target_dir);
+                // 再帰的にディレクトリを作成
+                mkdir(directory: $target_dir, recursive: true);
             }
 
             // スラッシュの処理
