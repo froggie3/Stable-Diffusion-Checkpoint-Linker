@@ -21,12 +21,12 @@ class Prettier
 
     public function removeInnerBackslash(string $target): string
     {
-        return str_replace(search: '\\', replace: '/', subject: $target);
+        return str_replace('\\', '/', $target);
     }
 
     public function remove_double_dots(string $target): string
     {
-        return str_replace(search: '..', replace: '', subject: $target);
+        return str_replace('..', '', $target);
     }
 
     public function fix_slash(string $target): string

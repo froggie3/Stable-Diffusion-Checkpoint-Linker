@@ -25,20 +25,20 @@ class Execute
                 } else {
                     symlink($src, $dest);
                 }
-            }
 
-            // リンクが適切に貼られたかどうかを確認する
-            if (file_exists($dest)) {
-                echo $src, ' <===> ', $dest, "\n";
+                // リンクが適切に貼られたかどうかを確認する
+                if (file_exists($dest)) {
+                    echo $src, ' <===> ', $dest, "\n";
+                }
             }
         } else {
-            if (file_exists($dest)) {
+            if (file_exists($dest) || is_link($dest)) {
                 unlink($dest);
-            }
 
-            // リンクが適切に削除されたかどうかを確認する
-            if (!file_exists($dest)) {
-                echo 'x=> ', $dest, "\n";
+                // リンクが適切に削除されたかどうかを確認する
+                if (!file_exists($dest)) {
+                    echo 'x=> ', $dest, "\n";
+                }
             }
         }
     }

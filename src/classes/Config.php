@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace classes;
 
 /*
- * コンフィグパース用
+ * *.json ファイルをパースしてPHPの配列に展開する
  */
 
 class Config
@@ -22,7 +22,7 @@ class Config
         function call(string $target_dir): string {
             if (!file_exists($target_dir)) {
                 // 再帰的にディレクトリを作成
-                mkdir(directory: $target_dir, recursive: true);
+                mkdir($target_dir, recursive: true);
             }
 
             // スラッシュの処理
