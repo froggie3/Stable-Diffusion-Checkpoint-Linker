@@ -20,15 +20,10 @@ class Path
     // ディレクトリのみのリストを返す
     public function extract_dir(): array
     {
-        $dir_extracted = [];
-        $dir_list = array_slice(scandir($this->target_directory, 0), 2);
-
-        foreach ($dir_list as $item) {
-            if (is_dir($this->target_directory . '/' . $item) === true) {
-                $dir_extracted[] = $item;
-            }
-        }
-        return $dir_extracted;
+        return array_values(array_filter(array_map(
+            fn (string $i): string => (is_dir($this->target_directory . '/' . $i)) ? $i : '',
+            array_slice(scandir($this->target_directory, 0), 2),
+        )));
     }
 
     // *.pt のみのリストを返す

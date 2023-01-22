@@ -31,14 +31,7 @@ class Prettier
 
     public function fix_slash(string $target): string
     {
-        // 余分なスラッシュを削除
-        $target = preg_replace('/\/+$/', '/', $target);
-
         // 行末のスラッシュがない場合は追加
-        if (strlen($target) !== strrpos($target, '/') + 1) {
-            $target .= '/';
-        }
-
-        return $target;
+        return trim(trim($target, '/'), '\\') . '/';
     }
 }
