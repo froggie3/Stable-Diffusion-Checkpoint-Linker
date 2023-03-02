@@ -5,51 +5,38 @@ declare(strict_types=1);
 
 class Message
 {
-    const JSON_BAD_CONTENT = '不正な設定ファイルです';
-    const JSON_BAD_PATH = '指定されたJSONファイルのパス名が不正です';
-}
-
-class Option
-{
-    public function has_json(array $options): bool
-    {
-        return (isset($options['json']))
-            ? true
-            : false;
-    }
-
-    public function has_symlink(array $options): bool
-    {
-        return (isset($options['symlink']))
-            ? true
-            : false;
-    }
+    const JSON_BAD_CONTENT =
+    'Invalid JSON was detected, check if it is valid.' . PHP_EOL;
+    const JSON_BAD_PATH =
+    'Invalid path for JSON' . PHP_EOL;
 }
 
 function determine_config_parameters(): array
 {
-    $option = new Option;
-    $params = array();
-    $options_got = getopt(short_options: 'hr', long_options: ['json:']);
-    $json_path = ($option->has_json($options_got))
-        ? $options_got['json']
-        : 'C:\mnt1\yokkin\Documents\GitHub\Stable-Diffusion-Checkpoint-Linker\config\config.json';
+    $options_got = getopt('', ['json:']);
+    $json_path = $options_got['json'] ?? false;
 
     // Check if .json is available but otherwise exit
     try {
-        if (!file_exists($json_path)) {
-            throw new Exception(Message::JSON_BAD_PATH);
+        if (!$json_path) {
+            throw new Exception(
+                "Usage: add \"--json PATH\" to specify a config file" . PHP_EOL
+            );
         }
-        $params = json_decode(file_get_contents($json_path), true);
-    } catch (Exception $e) {
 
+        if (!file_exists($json_path)) {
+            throw new Exception(Message::JSON_BAD_PATH . PHP_EOL);
+        }
+
+        $params = json_decode(file_get_contents($json_path), true) ?? false;
+    } catch (Exception $e) {
         echo $e->getMessage();
         exit;
     }
 
     // Check if .json is valid but otherwise exit
     try {
-        if (is_null($params)) {
+        if (!$params) {
             throw new Exception(Message::JSON_BAD_CONTENT);
         }
     } catch (Exception $e) {
@@ -180,7 +167,10 @@ function link_by_type(string $src, string $dest): void
         return;
     }
 
-    if (!(new Option)->has_symlink(getopt('', ['symlink']))) {
+    $option = getopt('', ['symlink']);
+    $is_symlink = array_key_exists('json', $option);
+
+    if (!$is_symlink) {
         weight_hardlink($src, $dest);
         return;
     }
@@ -229,7 +219,7 @@ function main()
     }
 
     printf(
-        "Linked %s weights (in disabled: %s weights)",
+        "Linked %s weights (in disabled: %s weights)" . PHP_EOL,
         count($op_list['link']),
         count($op_list['unlink'])
     );

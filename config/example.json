@@ -1,0 +1,87 @@
+{
+  "destination": {
+    "webui": "C:/foo/stable-diffusion-webui",
+    "checkpoint": "C:/foo/stable-diffusion-webui/models/Stable-diffusion",
+    "vae": "C:/foo/stable-diffusion-webui/models/VAE",
+    "embeddings": "C:/foo/stable-diffusion-webui/embeddings",
+    "hypernetworks": "C:/foo/stable-diffusion-webui/models/hypernetworks",
+    "lora": "C:/foo/stable-diffusion-webui/models/Lora"
+  },
+  "source": {
+    "checkpoint": [
+      {
+        "meta": {
+          "comment": "You can leave some comments on each entry",
+          "enabled": true
+        },
+        "baseDirectory": "C:/foo",
+        "weightsList": [
+          "foo.safetensors"
+        ],
+        "ignoreList": [
+          ""
+        ]
+      },
+      {
+        "meta": {
+          "comment": "if 'enabled' set to 'false', then all the models in 'weightList' will be unlinked.",
+          "enabled": false
+        },
+        "baseDirectory": "C:/bar",
+        "weightsList": [
+          "bar.safetensors",
+          "baz.safetensors"
+        ],
+        "ignoreList": [
+          ""
+        ]
+      }
+    ],
+    "vae": [
+      {
+        "meta": {
+          "comment": "Moving models on 'ignoreList' also allows to set different model status. Note that you can also omit 'ignoreList'",
+          "enabled": true
+        },
+        "baseDirectory": "C:/std/wd-1-5-beta",
+        "weightsList": [
+          "kl-f8-anime.ckpt",
+          "kl-f8-anime2.ckpt"
+        ]
+      }
+    ],
+    "embeddings": [
+      {
+        "meta": {
+          "comment": "bad_prompt (Embeddings)",
+          "enabled": false
+        },
+        "baseDirectory": "C:/foo/bad_prompt",
+        "weightsList": [
+          "bad_prompt.pt",
+          "bad_prompt_version2.pt"
+        ]
+      }
+    ],
+    "hypernetworks": [
+      {
+        "meta": {
+          "comment": "",
+          "enabled": false
+        },
+        "baseDirectory": "",
+        "weightsList": []
+      }
+    ],
+    "lora": [
+      {
+        "meta": {
+          "comment": "",
+          "enabled": false
+        },
+        "baseDirectory": "",
+        "weightsList": []
+      }
+    ]
+  }
+}
