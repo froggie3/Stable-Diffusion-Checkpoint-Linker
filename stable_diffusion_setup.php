@@ -5,10 +5,25 @@ declare(strict_types=1);
 
 class Message
 {
-    const UNLINKED_OK = 'リンクを削除しました';
-    const LINKED_OK = 'リンクを作成しました';
     const JSON_BAD_CONTENT = '不正な設定ファイルです';
     const JSON_BAD_PATH = '指定されたJSONファイルのパス名が不正です';
+}
+
+class Option
+{
+    public function has_json(array $options): bool
+    {
+        return (isset($options['json']))
+            ? true
+            : false;
+    }
+
+    public function has_symlink(array $options): bool
+    {
+        return (isset($options['symlink']))
+            ? true
+            : false;
+    }
 }
 
 function determine_config_parameters(): array
@@ -27,6 +42,7 @@ function determine_config_parameters(): array
         }
         $params = json_decode(file_get_contents($json_path), true);
     } catch (Exception $e) {
+
         echo $e->getMessage();
         exit;
     }
@@ -37,6 +53,7 @@ function determine_config_parameters(): array
             throw new Exception(Message::JSON_BAD_CONTENT);
         }
     } catch (Exception $e) {
+
         echo $e->getMessage();
         exit;
     }
@@ -44,16 +61,15 @@ function determine_config_parameters(): array
     return $params;
 }
 
-/*
- * クラスの初期化
- */
-
-
-#var_dump($first_elem);
-
 function get_key_list(): array
 {
-    return array('checkpoint', 'vae', 'embeddings', 'hypernetworks');
+    return array(
+        'checkpoint',
+        'vae',
+        'embeddings',
+        'hypernetworks',
+        'lora'
+    );
 }
 
 /**
@@ -73,6 +89,7 @@ function join_paths(string ...$parts)
         array_map(fn ($part) => rtrim($part, DIRECTORY_SEPARATOR), $parts),
         fn ($part) => !empty($part)
     );
+
     return $prefix . implode(DIRECTORY_SEPARATOR, $processed);
 }
 
@@ -84,7 +101,6 @@ function source_walk()
     $operation_list = array("link" => array(), "unlink" => array());
 
     foreach ($key_list as $current_key) {
-        #echo $current_key, "\n";
         $elem = $source[$current_key];
 
         # walking around json
@@ -93,8 +109,8 @@ function source_walk()
             $ignore_List = $weights['ignoreList'] ?? [];
             $weights_enabled = $weights['meta']['enabled'] || false;
 
-            #var_dump($weights_enabled);
             if ($weights_enabled && !empty($weights_List)) {
+
                 # "weightLists"
                 foreach ($weights_List as $weight) {
                     if (empty($weight)) {
@@ -104,29 +120,33 @@ function source_walk()
                     $base_directory = $weights['baseDirectory'];
                     $operation_list['link'][] = array(
                         "src" => join_paths($base_directory, $weight),
-                        "dest" => join_paths(callback_which_dest(key_name: $current_key), $weight),
+                        "dest" => join_paths(
+                            callback_which_dest($current_key),
+                            $weight
+                        ),
                     );
                 }
-                #unlink
+
+                # unlink
                 if (empty($ignore_List)) {
                     continue;
                 }
-
                 foreach ($ignore_List as $weight) {
                     if (empty($weight)) {
                         continue;
                     }
-
-                    $operation_list['unlink'][] = join_paths(callback_which_dest(key_name: $current_key), $weight);
+                    $operation_list['unlink'][] =
+                        join_paths(callback_which_dest($current_key), $weight);
                 }
             } else {
+
                 # unlink
                 foreach ($weights_List as $weight) {
                     if (empty($weight)) {
                         continue;
                     }
-
-                    $operation_list['unlink'][] = join_paths(callback_which_dest(key_name: $current_key), $weight);
+                    $operation_list['unlink'][] =
+                        join_paths(callback_which_dest($current_key), $weight);
                 }
             }
         }
@@ -149,50 +169,22 @@ function callback_which_dest(string $key_name): string
     }
 }
 
-/*
- * コマンドライン引数をパース
- */
-
-class Option
-{
-    // --json オプションがあるか？
-    public function has_json(array $options): bool
-    {
-        return (isset($options['json']))
-            ? true
-            : false;
-    }
-
-    // --symlink オプションがあるか？
-    public function has_symlink(array $options): bool
-    {
-        return (isset($options['symlink']))
-            ? true
-            : false;
-    }
-}
-
 function link_by_type(string $src, string $dest): void
 {
     if (file_exists($dest)) {
         return;
     }
 
-    $exists = array($src => file_exists($src));
-    foreach ($exists as $path => $bool) {
-        if (!$bool) {
-            echo ($path), " not found", "\n";
-            #continue;
-            return;
-        }
+    if (!file_exists($src)) {
+        echo ($src), " not found", "\n";
+        return;
     }
 
     if (!(new Option)->has_symlink(getopt('', ['symlink']))) {
         weight_hardlink($src, $dest);
-        #echo "hard link!", "\n";
         return;
     }
-    #echo "sym link!", "\n";
+
     weight_symlink($src, $dest);
 }
 
@@ -217,32 +209,25 @@ function weight_unlink(string $filename): void
     if (!file_exists($filename)) {
         return;
     }
-
-    // link_by_type と処理が被っているので共通化したいね
-    $exists = array($filename => file_exists($filename));
-    foreach ($exists as $path => $bool) {
-        if (!$bool) {
-            echo ($path), " not found", "\n";
-            continue;
-            return;
-        }
-    }
-
     unlink($filename);
+    echo ($filename), " not found", "\n";
     #echo "unlink $filename";
 }
 
 function main()
 {
     $op_list = source_walk();
+
     #var_export($op_list);
+
     foreach ($op_list['link'] as $path_pair) {
         link_by_type($path_pair['src'], $path_pair['dest']);
     }
+
     foreach ($op_list['unlink'] as $path) {
-        #echo "unlink $path", "\n";
         weight_unlink($path);
     }
+
     printf(
         "Linked %s weights (in disabled: %s weights)",
         count($op_list['link']),
