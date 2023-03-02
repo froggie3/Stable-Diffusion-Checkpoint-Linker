@@ -8,18 +8,10 @@ PHP environment is required to run this script.
 
 ## How to use
 
-To make the hard link, run the script with no arguments.
+To make the hard/symbolic link, run the script with no arguments.
 
 ```bash
 php .\stable_diffusion_setup.php
-```
-
-### Deleting hard link
-
-To remove hard links, run the script with the `--unlink` argument.
-
-```bash
-php .\stable_diffusion_setup.php --unlink
 ```
 
 ### Specify your preferred `*.json` file
@@ -42,58 +34,7 @@ It enables you to put a link across volumes, but it must be run in a terminal wi
 
 First, open `/config/config.json` and set the installation directory for Stable Diffusion Web UI.
 
-```json
-{
-    "webui": "C:\\std\\stable-diffusion-webui\\",
-    "configs": [
-        {
-            "ckpt_dir": "C:\\std\\novelaileak\\stableckpt\\animefull-final-pruned\\",
-            "model": ["model.ckpt"],
-            "vae_dir": "C:\\std\\novelaileak\\stableckpt",
-            "vae": ["animevae.pt"],
-            "includes_nai_hypernetworks": true,
-            "hn_dir": "C:\\std\\novelaileak\\stableckpt\\modules\\modules"
-        },
-        {
-            "ckpt_dir": "C:\\std\\anything-v3-0",
-            "model": [
-                "Anything-V3.0.ckpt",
-                "Anything-V3.0-pruned-fp16.ckpt",
-                "Anything-V3.0-pruned-fp32.ckpt"
-            ],
-            "vae_dir": "C:\\std\\anything-v3-0",
-            "vae": ["Anything-V3.0.vae.pt"]
-        },
-        {
-            "embeddings_dir": "C:\\std\\embeddings\\bad-artist",
-            "embeddings": ["bad-artist.pt", "bad-artist-anime.pt"]
-        }
-    ]
-}
-```
-
-- **ckpt**
-  - `ckpt_dir`  
-        specifies the directory where the model is located. No slash is required.
-  - `model`  
-        can specifies multiple checkpoint files.
-- **VAE**
-  - `vae_dir`  
-        specifies the directory where VAE is located.
-  - `vae`  
-        can specify multiple VAEs.
-- **Embedding**
-  - `embeddings_dir`  
-        specify the directory where Embedding is located.
-  - `embeddings`  
-        can specify multiple Embeddings.
-
-Note that the following specifications may change:
-
-- `includes_nai_hypernetworks`  
-    If NAI's HyperNetwork is present, set this to `true`.
-- `hn_dir`  
-    In that case, specify the directory where the `.pt` file is located.
+... to be written
 
 ## Misc
 
