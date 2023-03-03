@@ -83,8 +83,6 @@ function confirm(string $json_name): bool
         if ($input === "y") {
             return true;
         }
-
-        echo 'N';
     }
 
     return false;
