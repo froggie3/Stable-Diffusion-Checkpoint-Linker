@@ -9,11 +9,9 @@ $defined_cmds = array('newconfig' => 'newconfig');
 $has_newconfig = in_array($defined_cmds['newconfig'], $argv) ?: false;
 
 if ($has_newconfig) {
-    $np = new NewConfig($defined_cmds['newconfig'], $argv);
-    $np->run();
+    (new NewConfig($defined_cmds['newconfig'], $argv))->run();
 } else {
-    $ln = new Linker;
-    $ln->run();
+    (new Linker)->run();
 }
 
 /**
