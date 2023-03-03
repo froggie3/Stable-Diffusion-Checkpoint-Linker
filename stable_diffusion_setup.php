@@ -11,6 +11,184 @@ class Message
     'Invalid path for JSON' . PHP_EOL;
 }
 
+function has_newconfig(string $command, array $args): bool
+{
+    return in_array($command, $args) ?? false;
+}
+
+function newconfig($program, array $args): string | null
+{
+    $message = array(
+        'usage' => "Usage: $program <foo.json>",
+        'error' =>
+        "The command '$program' takes an another argument for configuration path!",
+    );
+
+    $value = array_search($program, $args);
+    $new_path = $args[++$value] ?? null;
+
+    if (!$new_path) {
+        echo $message['usage'] . PHP_EOL;
+        echo $message['error'] . PHP_EOL;
+        exit;
+    }
+
+    // json file path
+    return $new_path;
+}
+
+function main(array $args): void
+{
+    $defined_cmds = array('newconfig' => 'newconfig');
+    if (has_newconfig($defined_cmds['newconfig'], $args)) {
+        $new_path = newconfig($defined_cmds['newconfig'], $args);        
+        if (!is_null($new_path) && confirm($new_path)) {
+            generate_template($new_path);
+        }
+        return;
+    } else {
+        run();
+    }
+}
+function confirm(string $json_name): bool
+{
+    $message = array(
+        'confirm_override' =>
+        "$json_name seems to already exists. " .
+            "Are you sure to override the file? (y/N)",
+        'confirm_override_2' =>
+        "Are you *really* sure to override the current $json_name? (y/N)",
+        'confirm' =>
+        "Are you sure to make a new configuration to $json_name? (y/N)",
+    );
+
+    if (file_exists($json_name)) {
+        echo "{$message['confirm_override']}: ";
+        $input = trim(stream_get_contents(STDIN, 1));
+
+        if ($input === "y") {
+            echo PHP_EOL . "{$message['confirm_override_2']}: ";
+            $input = trim(stream_get_contents(STDIN, 1));
+
+            if ($input === "y") {
+                return true;
+            }
+        }
+
+        echo 'N';
+    } else {
+        echo "{$message['confirm']}: ";
+        $input = trim(stream_get_contents(STDIN, 1));
+
+        if ($input === "y") {
+            return true;
+        }
+
+        echo 'N';
+    }
+
+    return false;
+}
+
+function generate_template(string $filename): void
+{
+    $template_data = json_template();
+
+    if (!$fp = fopen($filename, 'w')) {;
+        echo PHP_EOL . "Cannot open file $filename";
+        exit;
+    }
+
+    if (!fwrite($fp, $template_data)) {
+        echo PHP_EOL . "Cannot write to file $filename";
+        exit;
+    }
+
+    if (file_exists($filename)) {
+        echo PHP_EOL .
+            "Yay! wrote a template to" . PHP_EOL . realpath($filename) . "!";
+    }
+
+    fclose($fp);
+}
+
+function json_template(): string
+{
+    $template = array(
+        'destination' => array(
+            'webui' => 'C:/foo/stable-diffusion-webui',
+            'checkpoint' => 'C:/foo/stable-diffusion-webui/models/Stable-diffusion',
+            'vae' => 'C:/foo/stable-diffusion-webui/models/VAE',
+            'embeddings' => 'C:/foo/stable-diffusion-webui/embeddings',
+            'hypernetworks' => 'C:/foo/stable-diffusion-webui/models/hypernetworks',
+            'lora' => 'C:/foo/stable-diffusion-webui/models/Lora',
+        ),
+        'source' => array(
+            'checkpoint' => array(
+                0 => array(
+                    'meta' => array(
+                        'comment' => '',
+                        'enabled' => false,
+                    ),
+                    'baseDirectory' => '',
+                    'weightsList' => array(0 => ''),
+                    'ignoreList' => array(0 => ''),
+                ),
+            ),
+            'vae' => array(
+                0 => array(
+                    'meta' => array(
+                        'comment' => '',
+                        'enabled' => false,
+                    ),
+                    'baseDirectory' => '',
+                    'weightsList' => array(0 => ''),
+                    'ignoreList' => array(0 => ''),
+                ),
+            ),
+            'embeddings' => array(
+                0 => array(
+                    'meta' => array(
+                        'comment' => '',
+                        'enabled' => false,
+                    ),
+                    'baseDirectory' => '',
+                    'weightsList' => array(0 => ''),
+                    'ignoreList' => array(0 => ''),
+                ),
+            ),
+            'hypernetworks' => array(
+                0 => array(
+                    'meta' => array(
+                        'comment' => '',
+                        'enabled' => false,
+                    ),
+                    'baseDirectory' => '',
+                    'weightsList' => array(0 => ''),
+                    'ignoreList' => array(0 => ''),
+                ),
+            ),
+            'lora' => array(
+                0 => array(
+                    'meta' => array(
+                        'comment' => '',
+                        'enabled' => false,
+                    ),
+                    'baseDirectory' => '',
+                    'weightsList' => array(0 => ''),
+                    'ignoreList' => array(0 => ''),
+                ),
+            ),
+        ),
+    );
+
+    $json_encoded = json_encode(
+        $template,
+        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+    );
+    return $json_encoded;
+}
+
 function determine_config_parameters(): array
 {
     $options_got = getopt('', ['json:']);
@@ -50,13 +228,7 @@ function determine_config_parameters(): array
 
 function get_key_list(): array
 {
-    return array(
-        'checkpoint',
-        'vae',
-        'embeddings',
-        'hypernetworks',
-        'lora'
-    );
+    return array('checkpoint', 'vae', 'embeddings', 'hypernetworks', 'lora');
 }
 
 /**
@@ -65,7 +237,7 @@ function get_key_list(): array
  * @param string $parts,... The parts of the URL to join.
  * @return string The URL string.
  */
-function join_paths(string ...$parts)
+function join_paths(string ...$parts): string
 {
     if (sizeof($parts) === 0) {
         return '';
@@ -80,7 +252,7 @@ function join_paths(string ...$parts)
     return $prefix . implode(DIRECTORY_SEPARATOR, $processed);
 }
 
-function source_walk()
+function source_walk(): array
 {
     $json_params = determine_config_parameters();
     $source = $json_params['source'];
@@ -204,7 +376,7 @@ function weight_unlink(string $filename): void
     #echo "unlink $filename";
 }
 
-function main()
+function run(): void
 {
     $op_list = source_walk();
 
@@ -225,4 +397,4 @@ function main()
     );
 }
 
-main();
+main($argv);
