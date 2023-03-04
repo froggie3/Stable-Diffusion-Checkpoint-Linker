@@ -49,10 +49,7 @@ class Linker
 
                     # "weightLists"
                     foreach ($weights_List as $weight) {
-                        if (empty($weight)) {
-                            continue;
-                        }
-
+                        if (empty($weight)) continue;
                         $base_directory = $weights['baseDirectory'];
                         $operation_list['link'][] = array(
                             "src" => join_paths($base_directory, $weight),
@@ -63,27 +60,16 @@ class Linker
                         );
                     }
 
-                    # unlink
-                    if (empty($ignore_List)) {
-                        continue;
-                    }
+                    if (empty($ignore_List)) continue;
 
                     foreach ($ignore_List as $weight) {
-                        if (empty($weight)) {
-                            continue;
-                        }
-
+                        if (empty($weight)) continue;
                         $operation_list['unlink'][] =
                             join_paths($this->which_dest($current_key), $weight);
                     }
                 } else {
-
-                    # unlink
                     foreach ($weights_List as $weight) {
-                        if (empty($weight)) {
-                            continue;
-                        }
-
+                        if (empty($weight)) continue;
                         $operation_list['unlink'][] =
                             join_paths($this->which_dest($current_key), $weight);
                     }
@@ -102,9 +88,7 @@ class Linker
 
         # just find a proper key-value (specific path) pairs
         foreach ($dest_list as $current_key => $current_dest) {
-            if ($key_name === $current_key) {
-                return $current_dest;
-            }
+            if ($key_name === $current_key) return $current_dest;
         }
     }
     private function determine_config_parameters(): array
@@ -146,9 +130,7 @@ class Linker
 
     private function link_by_type(string $src, string $dest): void
     {
-        if (file_exists($dest)) {
-            return;
-        }
+        if (file_exists($dest)) return;
 
         if (!file_exists($src)) {
             echo ($src), " not found", PHP_EOL;
@@ -184,9 +166,8 @@ class Linker
 
     private function weight_unlink(string $filename): void
     {
-        if (!file_exists($filename)) {
-            return;
-        }
+        if (!file_exists($filename)) return;
+
         unlink($filename);
         echo ($filename), " not found", PHP_EOL;
         #echo "unlink $filename";
