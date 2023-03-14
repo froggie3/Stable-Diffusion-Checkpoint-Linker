@@ -17,45 +17,46 @@ class Linker
         $this->options = getopt('', array('symlink', 'json:'));
         $this->json_params = $this->config_variables_import();
 
-        $op_list = $this->source_walk();
+        list('link' => $link, 'unlink' => $unlink) = $this->source_walk();
 
-        foreach ($op_list['link'] as $path_pair) {
+        foreach ($link as $path_pair) {
             $this->link_by_type($path_pair['src'], $path_pair['dest']);
         }
 
-        foreach ($op_list['unlink'] as $path) {
+        foreach ($unlink as $path) {
             $this->weight_unlink($path);
         }
 
         printf(
             "Linked %s weights (in disabled: %s weights)" . PHP_EOL,
-            count($op_list['link']),
-            count($op_list['unlink'])
+            count($link),
+            count($unlink)
         );
     }
 
     private function source_walk(): array
     {
-        $json_params = $this->config_variables_import();
-        $source = $json_params['source'];
+        $source = $this->json_params['source'];
         $key_list = self::key_list;
         $operation_list = array("link" => array(), "unlink" => array());
 
         foreach ($key_list as $current_key) {
-            $elem = $source[$current_key];
+            $category = $source[$current_key];
 
-            # walking around json
-            foreach ($elem as $weights) {
-                $weights_List = $weights['weightsList'] ?? [];
-                $ignore_List = $weights['ignoreList'] ?? [];
-                $weights_enabled = $weights['meta']['enabled'] || false;
+            foreach ($category as
+                list(
+                    'weightsList'   => $weights_List,
+                    'meta'          => list('enabled' => $weights_enabled),
+                    'baseDirectory' => $base_directory
+                )) {
+
+                // ignorelist can be omitted, meaning values are not always
+                // accessible with a specific key 
+                $ignore_List = $weights['ignoreList'] ?? array();
 
                 if ($weights_enabled && !empty($weights_List)) {
-
-                    # "weightLists"
                     foreach ($weights_List as $weight) {
                         if (empty($weight)) continue;
-                        $base_directory = $weights['baseDirectory'];
                         $operation_list['link'][] = array(
                             "src" => join_paths($base_directory, $weight),
                             "dest" => join_paths(
