@@ -8,11 +8,16 @@ class Linker
         'checkpoint', 'vae', 'embeddings', 'hypernetworks', 'lora'
     );
 
+    private $options = array();
+
+    private $json_params = array();
+
     public function run(): void
     {
-        $op_list = $this->source_walk();
+        $this->options = getopt('', array('symlink', 'json:'));
+        $this->json_params = $this->config_variables_import();
 
-        #var_export($op_list);
+        $op_list = $this->source_walk();
 
         foreach ($op_list['link'] as $path_pair) {
             $this->link_by_type($path_pair['src'], $path_pair['dest']);
@@ -31,7 +36,7 @@ class Linker
 
     private function source_walk(): array
     {
-        $json_params = $this->determine_config_parameters();
+        $json_params = $this->config_variables_import();
         $source = $json_params['source'];
         $key_list = self::key_list;
         $operation_list = array("link" => array(), "unlink" => array());
@@ -82,33 +87,30 @@ class Linker
     # returns a proper destination written in the settings
     private function which_dest(string $key_name): string
     {
-        # find json description
-        $json_params = $this->determine_config_parameters();
-        $dest_list = $json_params['destination'];
+        $dest_list = $this->json_params['destination'];
 
         # just find a proper key-value (specific path) pairs
         foreach ($dest_list as $current_key => $current_dest) {
-            if ($key_name === $current_key) return $current_dest;
+            if ($key_name === $current_key)
+                return $current_dest;
         }
     }
-    private function determine_config_parameters(): array
+    private function config_variables_import(): array
     {
-        $options_got = getopt('', ['json:']);
-        $json_path = $options_got['json'] ?? false;
+        if (isset($this->options['json'])) {
+            $json_path = $this->options['json'];
+        }
 
         // Check if .json is available but otherwise exit
         try {
-            if (!$json_path) {
-                throw new Exception(
-                    "Usage: add \"--json PATH\" to specify a config file" . PHP_EOL
-                );
+            if (isset($json_path) && file_exists($json_path)) {
+                $params = json_decode(file_get_contents($json_path), true) ?? false;
+            } elseif (!$json_path) {
+                throw new Exception("Usage: add \"--json PATH\" to specify a config file");
+            } else {
+                if (!file_exists($json_path))
+                    throw new Exception('Invalid path for JSON');
             }
-
-            if (!file_exists($json_path)) {
-                throw new Exception('Invalid path for JSON');
-            }
-
-            $params = json_decode(file_get_contents($json_path), true) ?? false;
         } catch (Exception $e) {
             echo $e->getMessage() . PHP_EOL;
             exit;
@@ -127,7 +129,6 @@ class Linker
         return $params;
     }
 
-
     private function link_by_type(string $src, string $dest): void
     {
         if (file_exists($dest)) return;
@@ -137,25 +138,23 @@ class Linker
             return;
         }
 
-        $option = getopt('', ['symlink']);
-        $is_symlink = array_key_exists('json', $option);
-
-        if (!$is_symlink) {
+        if (isset($this->options['symlink'])) {
+            $this->weight_symlink($src, $dest);
+        } else {
             $this->weight_hardlink($src, $dest);
-            return;
         }
-
-        $this->weight_symlink($src, $dest);
     }
 
     private function weight_hardlink(string $src, string $dest): void
     {
-        @link($src, $dest);
+        link($src, $dest);
 
-        $error = error_get_last() ?? [];
-        if ($error['message'] === "link(): Improper link") {
-            echo $error['message'], ": ";
-            echo "Try adding --symlink option \n";
+        if (isset($error['message'])) {
+            $error = error_get_last() ?? array();
+            if ($error['message'] === "link(): Improper link") {
+                echo $error['message'], ": ";
+                echo "Try adding --symlink option \n";
+            }
         }
     }
 
