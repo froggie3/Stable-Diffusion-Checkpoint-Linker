@@ -7,6 +7,12 @@ class NewConfig
     private $program;
     private $args;
 
+    /**
+     * The constructor 
+     * 
+     * @param string $name the name for subcommand 
+     * @param array contains the $argv value 
+     */
     public function __construct(string $name, array $args)
     {
         $this->program = $name;
@@ -43,6 +49,12 @@ class NewConfig
         }
     }
 
+    /**
+     * Confirming when the command is called
+     * 
+     * @param string $json_name the filename for JSON
+     * @return bool whether execution for the operation is confirmed 
+     */
     private function confirm(string $json_name): bool
     {
         $message = array(
@@ -78,6 +90,12 @@ class NewConfig
         return false;
     }
 
+    /**
+     * Generating template and writing into a file 
+     * 
+     * @param string $filename the filename for JSON
+     * @return array the status for 'fclose()', and the filename for JSON 
+     */
     private function generate_template(string $filename): array
     {
         $template_data = $this->json_template();
@@ -95,6 +113,11 @@ class NewConfig
         return [fclose($fp), $filename];
     }
 
+    /**
+     * Showing the status after generation for config finishes 
+     * 
+     * @return array $array status given from generate_template() 
+     */
     private function post_func(array $array): void
     {
         list($state, $filename) = $array;

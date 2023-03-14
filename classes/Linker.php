@@ -7,9 +7,7 @@ class Linker
     private const key_list = array(
         'checkpoint', 'vae', 'embeddings', 'hypernetworks', 'lora'
     );
-
     private $options = array();
-
     private $json_params = array();
 
     public function run(): void
@@ -85,7 +83,12 @@ class Linker
         return $operation_list;
     }
 
-    # returns a proper destination written in the settings
+    /**
+     * Returns the proper destination set in the settings 
+     * 
+     * @param string 
+     * @return string 
+     */
     private function which_dest(string $key_name): string
     {
         $dest_list = $this->json_params['destination'];
@@ -96,17 +99,21 @@ class Linker
                 return $current_dest;
         }
     }
+
+    /**
+     * Imports parameters from JSON
+     * 
+     * @return array the associated array converted or parsed from JSON
+     */
     private function config_variables_import(): array
     {
-        if (isset($this->options['json'])) {
-            $json_path = $this->options['json'];
-        }
+        $json_path = $this->options['json'] ?? false;
 
         // Check if .json is available but otherwise exit
         try {
-            if (isset($json_path) && file_exists($json_path)) {
+            if ($json_path !== false && file_exists($json_path)) {
                 $params = json_decode(file_get_contents($json_path), true) ?? false;
-            } elseif (!$json_path) {
+            } elseif ($json_path === false) {
                 throw new Exception("Usage: add \"--json PATH\" to specify a config file");
             } else {
                 if (!file_exists($json_path))

@@ -2,8 +2,14 @@
 <?php
 
 declare(strict_types=1);
-require_once("Linker.php");
-require_once("NewConfig.php");
+
+spl_autoload_register(function ($class_name) {
+    $dir = dirname(__DIR__) . '/classes/';
+    $file = $dir . str_replace('\\', '/', $class_name) . '.php';
+    if (file_exists($file)) {
+        require $file;
+    }
+});
 
 $defined_cmds = array('newconfig' => 'newconfig');
 $has_newconfig = in_array($defined_cmds['newconfig'], $argv) ?: false;
