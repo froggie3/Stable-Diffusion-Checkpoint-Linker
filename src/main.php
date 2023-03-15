@@ -2,14 +2,7 @@
 <?php
 
 declare(strict_types=1);
-
-spl_autoload_register(function ($class_name) {
-    $dir = dirname(__DIR__) . '/classes/';
-    $file = $dir . str_replace('\\', '/', $class_name) . '.php';
-    if (file_exists($file)) {
-        require $file;
-    }
-});
+include 'classes/Autoloader.php';
 
 $defined_cmds = array('newconfig' => 'newconfig');
 $has_newconfig = in_array($defined_cmds['newconfig'], $argv) ?: false;
