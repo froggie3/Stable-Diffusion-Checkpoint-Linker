@@ -3,8 +3,36 @@
 #
 # https://www.php.net/
 
-if (($null -ne (Get-Command php.exe -ErrorAction SilentlyContinue)) -eq $true) {
-    php -f ((Get-Location).Path + "\src\main.php") $Args;
+$executables = @{
+    Editor = "notepad"; 
+    Config = Join-Path (Get-Location).Path 'config\config.json'
+}
+
+function editorOpen() {
+    $answer = Read-Host "Do you want to open $($executables.Editor) to edit the configuration? [Y/n]"
+    if ($answer.ToLower() -eq "y") {
+        Write-Host -NoNewline "Opening $($executables.Editor) ... "
+        $process = Start-Process $executables.Editor $executables.Config -PassThru
+        Wait-Process $process.Id
+        Write-Output "done."
+    }
+}
+
+function processStart() {
+    $scriptPath = Join-Path (Get-Location).Path "src\main.php"
+    php.exe $scriptPath --json $executables.Config;
+}
+
+function processes() {
+    editorOpen;
+    processStart;
+}
+
+[bool] $requisitesAvailable = $null -ne (Get-Command php.exe -ErrorAction SilentlyContinue); 
+
+if ($requisitesAvailable -eq $true) {
+    processes 
+    Start-Sleep -Seconds 3 
 }
 else {
     Write-Output "Error: The PHP binary is not currently installed in your system."
