@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-class Linker
+final class Linker
 {
-    private const key_list = array(
+    private static $key_list = array(
         'checkpoint', 'vae', 'embeddings', 'hypernetworks', 'lora'
     );
-    private $options = array();
-    private $json_params = array();
+    private array $options;
+    private array $json_params;
 
     public function run(): void
     {
@@ -35,7 +35,7 @@ class Linker
     private function source_walk(): array
     {
         $source = $this->json_params['source'];
-        $key_list = self::key_list;
+        $key_list = self::$key_list;
         $operation_list = array("link" => array(), "unlink" => array());
 
         foreach ($key_list as $current_key) {
@@ -145,7 +145,6 @@ class Linker
             echo ($src), " not found", PHP_EOL;
             return;
         }
-
         if (isset($this->options['symlink'])) {
             $this->weight_symlink($src, $dest);
         } else {

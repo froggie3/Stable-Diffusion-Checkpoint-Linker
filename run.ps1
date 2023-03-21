@@ -3,6 +3,14 @@
 #
 # https://www.php.net/
 
+# self-elevating snippet for Powershell scripts which preserves the working directory
+# https://stackoverflow.com/questions/7690994/running-a-command-as-administrator-using-powershell/57035712#57035712
+
+if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Start-Process PowerShell -Verb RunAs "-NoProfile -ExecutionPolicy Bypass -Command `"cd '$pwd'; & '$PSCommandPath';`"";
+    exit;
+}
+
 $executables = @{
     Editor = "notepad"; 
     Config = Join-Path (Get-Location).Path 'config\config.json'
@@ -20,7 +28,7 @@ function editorOpen() {
 
 function processStart() {
     $scriptPath = Join-Path (Get-Location).Path "src\main.php"
-    php.exe $scriptPath --json $executables.Config;
+    php.exe $scriptPath --json $executables.Config --symlink;
 }
 
 function processes() {

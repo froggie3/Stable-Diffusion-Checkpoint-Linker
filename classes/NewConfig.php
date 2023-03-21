@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-class NewConfig
+final class NewConfig
 {
-    private $program;
-    private $args;
+    private string $program;
+    private array $args;
 
     /**
      * The constructor 
