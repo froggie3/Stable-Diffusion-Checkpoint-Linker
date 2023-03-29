@@ -68,7 +68,7 @@ final class NewConfig
 
         if (file_exists($json_name)) {
             echo $message['confirm_override'], ": ";
-            $input = trim(fgets(STDIN) ?: "");
+            $input = strtolower(trim(fgets(STDIN) ?: ""));
 
             if ($input === "y") {
                 echo $message['confirm_override_2'], ": ";
@@ -139,61 +139,51 @@ final class NewConfig
                 'lora' => 'C:/foo/stable-diffusion-webui/models/Lora',
             ),
             'source' => array(
-                'checkpoint' => array(
-                    0 => array(
-                        'meta' => array(
-                            'comment' => '',
-                            'enabled' => false,
-                        ),
-                        'baseDirectory' => '',
-                        'weightsList' => array(0 => ''),
-                        'ignoreList' => array(0 => ''),
+                'checkpoint' => array(array(
+                    'meta' => array(
+                        'comment' => '',
+                        'enabled' => false,
                     ),
-                ),
-                'vae' => array(
-                    0 => array(
-                        'meta' => array(
-                            'comment' => '',
-                            'enabled' => false,
-                        ),
-                        'baseDirectory' => '',
-                        'weightsList' => array(0 => ''),
-                        'ignoreList' => array(0 => ''),
+                    'baseDirectory' => '',
+                    'weightsList' => array(''),
+                    'ignoreList' => array(''),
+                )),
+                'vae' => array(array(
+                    'meta' => array(
+                        'comment' => '',
+                        'enabled' => false,
                     ),
-                ),
-                'embeddings' => array(
-                    0 => array(
-                        'meta' => array(
-                            'comment' => '',
-                            'enabled' => false,
-                        ),
-                        'baseDirectory' => '',
-                        'weightsList' => array(0 => ''),
-                        'ignoreList' => array(0 => ''),
+                    'baseDirectory' => '',
+                    'weightsList' => array(''),
+                    'ignoreList' => array(''),
+                )),
+                'embeddings' => array(array(
+                    'meta' => array(
+                        'comment' => '',
+                        'enabled' => false,
                     ),
-                ),
-                'hypernetworks' => array(
-                    0 => array(
-                        'meta' => array(
-                            'comment' => '',
-                            'enabled' => false,
-                        ),
-                        'baseDirectory' => '',
-                        'weightsList' => array(0 => ''),
-                        'ignoreList' => array(0 => ''),
+                    'baseDirectory' => '',
+                    'weightsList' => array(''),
+                    'ignoreList' => array(''),
+                )),
+                'hypernetworks' => array(array(
+                    'meta' => array(
+                        'comment' => '',
+                        'enabled' => false,
                     ),
-                ),
-                'lora' => array(
-                    0 => array(
-                        'meta' => array(
-                            'comment' => '',
-                            'enabled' => false,
-                        ),
-                        'baseDirectory' => '',
-                        'weightsList' => array(0 => ''),
-                        'ignoreList' => array(0 => ''),
+                    'baseDirectory' => '',
+                    'weightsList' => array(''),
+                    'ignoreList' => array(''),
+                )),
+                'lora' => array(array(
+                    'meta' => array(
+                        'comment' => '',
+                        'enabled' => false,
                     ),
-                ),
+                    'baseDirectory' => '',
+                    'weightsList' => array(''),
+                    'ignoreList' => array(''),
+                ),),
             ),
         );
 
