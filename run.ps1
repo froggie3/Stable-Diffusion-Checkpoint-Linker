@@ -11,14 +11,19 @@ if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]:
     exit;
 }
 
+
+
 $executables = @{
+    # assign your favorite editor (for example: code.exe)
     Editor = "notepad"; 
+    
+    # specify the location to your favorite config file
     Config = Join-Path (Get-Location).Path 'config\config.json'
 }
 
 function editorOpen() {
     $answer = Read-Host "Do you want to open $($executables.Editor) to edit the configuration? [Y/n]"
-    if ($answer.ToLower() -eq "y") {
+    if (($answer.ToLower() -eq "y") -or ($answer.ToLower() -eq "")) {
         Write-Host -NoNewline "Opening $($executables.Editor) ... "
         $process = Start-Process $executables.Editor $executables.Config -PassThru
         Wait-Process $process.Id
@@ -28,6 +33,8 @@ function editorOpen() {
 
 function processStart() {
     $scriptPath = Join-Path (Get-Location).Path "src\main.php"
+    # giving `--symlink` argumant makes symbolic links instead of hardlinks
+    # fyi not adding `--json` argument the config file `config/config.json` is read as default
     php.exe $scriptPath --json $executables.Config --symlink;
 }
 
