@@ -3,9 +3,9 @@
 ![images/20230406010745.png](images/20230406014524.png)
 
 Using this utility enables you to make a hardlink or a symlink of various weight
-file used in Stable Diffusion Web UI (`*.safetensors`, `*.ckpt`, `*.pt`, or
-something like that) without copying from the original folder.  
-Since this will just make no real copy of file, making links or its deletion is really fast.
+files used in Stable Diffusion Web UI (`*.safetensors`, `*.ckpt`, `*.pt`, or
+something like that) without copying weights from their original folders.  
+Since this will just make no real copy of files, making links or its deletion is really fast.
 
 This utility should be run in PHP environment installed.
 
@@ -13,44 +13,46 @@ This utility should be run in PHP environment installed.
 
 ## How to use
 
-To make a hardlink or symbolic link, run the PowerShell script with `run.ps1`.   
-Note that you need to make configuration in advance if the configuration is not
-ready! (if so you can refer to `Making a template for config file`
-
-The utility will automaticaly escalate the program and try to start with
-administrative privileges.
+To make a hardlink or symbolic link, run the PowerShell script with:  
 
 ```plain
 ./run.ps1
 ```
 
-or you can launch the program without opening terminal, it's really useful!
+Note that you need to make configuration in advance if the configuration is not
+ready! (if so you can refer to `Making a template for config file` section)
+
+The utility will automaticaly escalate the program and try to start with
+administrative privileges.
+
+or you can launch the program without opening a terminal, it's really useful!
 
 ![images/20230406010001.png](./images/20230406010001.png)
 
 Then prompt will ask whether you want to open the config file,
-you can answer `y`, `n`, or just pressing enter (in this case it is equivalent
-as you answer `y`)
+you can answer `y`, `n`, or just pressing enter key (in this case it is
+equivalent as you answer `y`)
 
 ```plain
 Do you want to open notepad to edit the configuration? [Y/n]: y
 ```
 
 Edit your config file with the editor you preferred, close it as you finished
-― That's it!
+editing ― That's it!
 
 ![images/20230406010745.png](./images/20230406010745.png)
 
 ### Making a template for config file
 
-You can easily prepare your new configuration by this command below
-(btw my apologies for bad naming for a subcommand)
-
-Executing this command, for example, will make new configuration as `foo.json`.
+You can easily prepare your new configuration file executing this command
+below:
 
 ```
 php src/main.php newconfig foo.json
 ```
+
+In this example a new configuration file will be made as `foo.json`.  
+(btw my apologies for bad naming for a subcommand)
 
 ## Setting
 
