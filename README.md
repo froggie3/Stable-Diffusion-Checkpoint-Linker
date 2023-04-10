@@ -6,7 +6,7 @@ Using this utility enables you to make a hardlink or a symlink of various weight
 files used in Stable Diffusion Web UI (`*.safetensors`, `*.ckpt`, `*.pt`, or
 something like that) without copying weights from their original folders.  
 Since this will just make no real copy of files, making links or its deletion 
-is really fast, where model files are usually a big deal for SSD or HDD.
+is really fast, whereas model files are usually a big deal for SSD or HDD.
 
 This utility should be run in PHP environment installed.
 
@@ -24,7 +24,8 @@ Note that you need to make configuration in advance if the configuration is not
 ready! (if so you can refer to `Making a template for config file` section later)
 
 The utility will automaticaly escalate the program and try to start with
-administrative privileges.
+administrative privileges since Windows only allows administrator to make 
+a symbolic link.
 
 or you can launch the program without opening a terminal, it's really useful!
 
@@ -32,7 +33,8 @@ or you can launch the program without opening a terminal, it's really useful!
 
 Then prompt will ask whether you want to open the config file,
 you can answer `y`, `n`, or just pressing enter key (in this case it is
-equivalent as you answer `y`)
+equivalent as you answer `y`). If you answer `n`, the program just makes
+symbolic links and then exits. 
 
 ```plain
 Do you want to open notepad to edit the configuration? [Y/n]: y
@@ -72,9 +74,9 @@ of weights from others. The types are like: `checkpoint`, `vae`, `embeddings`,
 
 Schema
 
-Note that since the configuration has JSON format, the comment in this example
-is uninteligible for the script parser, and therefore you have to eliminate 
-them while you edit the configuration. 
+Note that since the configuration in written in JSON format, the comment in 
+this example is not anything for the parser to understand.
+Please eliminate them while you edit the configuration. 
 
 ```json
 {
