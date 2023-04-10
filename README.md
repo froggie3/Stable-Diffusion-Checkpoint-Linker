@@ -5,7 +5,8 @@
 Using this utility enables you to make a hardlink or a symlink of various weight
 files used in Stable Diffusion Web UI (`*.safetensors`, `*.ckpt`, `*.pt`, or
 something like that) without copying weights from their original folders.  
-Since this will just make no real copy of files, making links or its deletion is really fast.
+Since this will just make no real copy of files, making links or its deletion 
+is really fast, where model files are usually a big deal for SSD or HDD.
 
 This utility should be run in PHP environment installed.
 
@@ -13,14 +14,14 @@ This utility should be run in PHP environment installed.
 
 ## How to use
 
-To make a hardlink or symbolic link, run the PowerShell script with:  
+To make a hardlink or symbolic link, run the PowerShell script with:
 
 ```plain
 ./run.ps1
 ```
 
 Note that you need to make configuration in advance if the configuration is not
-ready! (if so you can refer to `Making a template for config file` section)
+ready! (if so you can refer to `Making a template for config file` section later)
 
 The utility will automaticaly escalate the program and try to start with
 administrative privileges.
@@ -56,18 +57,24 @@ In this example a new configuration file will be made as `foo.json`.
 
 ## Setting
 
-Open `config/config.json` and set the installation directory for Stable
-Diffusion Web UI.
+Before you work on this program you need to prepare the configuration.
+Just open `config/config.json` in your text editor, and start setting the 
+installation directory for Stable Diffusion Web UI and weights used by the UI.
 
 Config file is roughly separated into two sections: `desination` and `source`.
-In `destination` you can specify the destination for links to weights to be
-actually placed, while `source` is for the location for weight are located.
+In `destination`, you can specify the destination for symbolic links or 
+hardlinks to real weights to be placed, while `source` is for the location for
+original weights living in.
 
 `source` section is also devided into some sections so you can tell the type
-of weight. Types are like: `checkpoint`, `vae`, `embeddings`, `hypernetworks`,
-`lora`.
+of weights from others. The types are like: `checkpoint`, `vae`, `embeddings`, 
+`hypernetworks`, `lora`.
 
 Schema
+
+Note that since the configuration has JSON format, the comment in this example
+is uninteligible for the script parser, and therefore you have to eliminate 
+them while you edit the configuration. 
 
 ```json
 {
