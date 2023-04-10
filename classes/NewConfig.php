@@ -72,7 +72,7 @@ final class NewConfig
 
             if ($input === "y") {
                 echo $message['confirm_override_2'], ": ";
-                $input = trim(fgets(STDIN) ?: "");
+                $input = strtolower(trim(fgets(STDIN) ?: ""));
 
                 if ($input === "y") {
                     return true;
@@ -80,7 +80,7 @@ final class NewConfig
             }
         } else {
             echo $message['confirm'], ": ";
-            $input = trim(fgets(STDIN) ?: "");
+            $input = strtolower(trim(fgets(STDIN) ?: ""));
 
             if ($input === "y") {
                 return true;
