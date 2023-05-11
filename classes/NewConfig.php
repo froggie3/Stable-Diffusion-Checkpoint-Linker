@@ -67,22 +67,22 @@ final class NewConfig
         );
 
         if (file_exists($json_name)) {
-            echo $message['confirm_override'], ": ";
-            $input = strtolower(trim(fgets(STDIN) ?: ""));
+            echo $message['confirm_override'], ': ';
+            $input = strtolower(trim(fgets(STDIN) ?: ''));
 
-            if ($input === "y") {
-                echo $message['confirm_override_2'], ": ";
-                $input = strtolower(trim(fgets(STDIN) ?: ""));
+            if ($input === 'y') {
+                echo $message['confirm_override_2'], ': ';
+                $input = strtolower(trim(fgets(STDIN) ?: ''));
 
-                if ($input === "y") {
+                if ($input === 'y') {
                     return true;
                 }
             }
         } else {
-            echo $message['confirm'], ": ";
-            $input = strtolower(trim(fgets(STDIN) ?: ""));
+            echo $message['confirm'], ': ';
+            $input = strtolower(trim(fgets(STDIN) ?: ''));
 
-            if ($input === "y") {
+            if ($input === 'y') {
                 return true;
             }
         }
@@ -123,7 +123,7 @@ final class NewConfig
         list($state, $filename) = $array;
 
         if ($state && file_exists($filename)) {
-            echo "Yay! wrote a template to: " . realpath($filename) . "!";
+            echo 'Yay! wrote a template to: ', realpath($filename), '!';
         }
     }
 

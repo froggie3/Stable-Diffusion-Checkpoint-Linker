@@ -14,8 +14,8 @@ if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]:
 
 
 $executables = @{
-    # assign your favorite editor (for example: code.exe)
-    Editor = "notepad"; 
+    # assign your editor
+    Editor = "C:/Program Files/Notepad++/notepad++.exe"; 
     
     # specify the location to your favorite config file
     Config = Join-Path (Get-Location).Path 'config\config.json'

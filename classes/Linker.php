@@ -2,16 +2,14 @@
 
 declare(strict_types=1);
 
-final class Linker
-{
+final class Linker {
     private static $key_list = array(
         'checkpoint', 'vae', 'embeddings', 'hypernetworks', 'lora'
     );
     private array $options;
     private array $json_params;
 
-    public function run(): void
-    {
+    public function run(): void {
         $this->options = getopt('', array('symlink', 'json:'));
         $this->json_params = $this->config_variables_import();
 
@@ -26,17 +24,16 @@ final class Linker
         }
 
         printf(
-            "Linked %s weights (in disabled: %s weights)" . PHP_EOL,
+            'Linked %s weights (in disabled: %s weights)' . PHP_EOL,
             count($link),
             count($unlink)
         );
     }
 
-    private function source_walk(): array
-    {
+    private function source_walk(): array {
         $source = $this->json_params['source'];
         $key_list = self::$key_list;
-        $operation_list = array("link" => array(), "unlink" => array());
+        $operation_list = array('link' => array(), 'unlink' => array());
 
         foreach ($key_list as $current_key) {
             $category = $source[$current_key];
@@ -56,8 +53,8 @@ final class Linker
                     foreach ($weights_List as $weight) {
                         if (empty($weight)) continue;
                         $operation_list['link'][] = array(
-                            "src" => join_paths($base_directory, $weight),
-                            "dest" => join_paths(
+                            'src' => join_paths($base_directory, $weight),
+                            'dest' => join_paths(
                                 $this->which_dest($current_key),
                                 $weight
                             ),
@@ -89,8 +86,7 @@ final class Linker
      * @param string 
      * @return string 
      */
-    private function which_dest(string $key_name): string
-    {
+    private function which_dest(string $key_name): string {
         $dest_list = $this->json_params['destination'];
 
         # just find a proper key-value (specific path) pairs
@@ -105,19 +101,19 @@ final class Linker
      * 
      * @return array the associated array converted or parsed from JSON
      */
-    private function config_variables_import(): array
-    {
+    private function config_variables_import(): array {
         $json_path = $this->options['json'] ?? false;
 
         // Check if .json is available but otherwise exit
         try {
-            if ($json_path !== false && file_exists($json_path)) {
-                $params = json_decode(file_get_contents($json_path), true) ?? false;
-            } elseif ($json_path === false) {
-                throw new Exception("Usage: add \"--json PATH\" to specify a config file");
-            } else {
-                if (!file_exists($json_path))
+            if ($json_path) {
+                if (file_exists($json_path)) {
+                    $params = json_decode(file_get_contents($json_path), true) ?? false;
+                } else {
                     throw new Exception('Invalid path for JSON');
+                }
+            } else {
+                throw new Exception('Usage: add \"--json PATH\" to specify a config file');
             }
         } catch (Exception $e) {
             echo $e->getMessage() . PHP_EOL;
@@ -137,12 +133,11 @@ final class Linker
         return $params;
     }
 
-    private function link_by_type(string $src, string $dest): void
-    {
+    private function link_by_type(string $src, string $dest): void {
         if (file_exists($dest)) return;
 
         if (!file_exists($src)) {
-            echo ($src), " not found", PHP_EOL;
+            echo ($src), ' not found', PHP_EOL;
             return;
         }
         if (isset($this->options['symlink'])) {
@@ -152,30 +147,27 @@ final class Linker
         }
     }
 
-    private function weight_hardlink(string $src, string $dest): void
-    {
+    private function weight_hardlink(string $src, string $dest): void {
         link($src, $dest);
 
         if (isset($error['message'])) {
             $error = error_get_last() ?? array();
-            if ($error['message'] === "link(): Improper link") {
-                echo $error['message'], ": ";
-                echo "Try adding --symlink option \n";
+            if ($error['message'] === 'link(): Improper link') {
+                echo $error['message'], ': ';
+                echo 'Try adding --symlink option', PHP_EOL;
             }
         }
     }
 
-    private function weight_symlink(string $src, string $dest): void
-    {
+    private function weight_symlink(string $src, string $dest): void {
         symlink($src, $dest);
     }
 
-    private function weight_unlink(string $filename): void
-    {
+    private function weight_unlink(string $filename): void {
         if (!file_exists($filename)) return;
 
         unlink($filename);
-        echo ($filename), " not found", PHP_EOL;
+        echo ($filename), ' not found', PHP_EOL;
         #echo "unlink $filename";
     }
 }
