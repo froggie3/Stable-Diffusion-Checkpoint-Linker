@@ -18,7 +18,8 @@ $executables = @{
     Editor = "C:/Program Files/Notepad++/notepad++.exe"; 
     
     # specify the location to your favorite config file
-    Config = Join-Path (Get-Location).Path 'config\config.json'
+    #Config = Join-Path (Get-Location).Path 'config\config.json'
+	Config = "C:\mnt1\yokkin\dev\php\Stable-Diffusion-Checkpoint-Linker\config\config.json"
 }
 
 function editorOpen() {
