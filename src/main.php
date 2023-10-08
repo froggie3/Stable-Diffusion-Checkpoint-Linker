@@ -4,22 +4,22 @@
 declare(strict_types=1);
 include 'classes/Autoloader.php';
 
-$defined_cmds = array('newconfig' => 'newconfig');
-$has_newconfig = in_array($defined_cmds['newconfig'], $argv) ?: false;
+$definedCmds = ['newConfig' => 'newconfig'];
+$hasNewConfig = in_array($definedCmds['newConfig'], $argv) ?: false;
 
-if ($has_newconfig) {
-    (new NewConfig($defined_cmds['newconfig'], $argv))->run();
+if ($hasNewConfig) {
+    (new NewConfig($definedCmds['newConfig'], $argv))->run();
 } else {
     (new Linker)->run();
 }
-
+    
 /**
  * Join string into a single URL string.
  *
  * @param string $parts,... The parts of the URL to join.
  * @return string The URL string.
  */
-function join_paths(string ...$parts): string
+function joinPaths(string ...$parts): string
 {
     if (sizeof($parts) === 0) {
         return '';

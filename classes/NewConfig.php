@@ -11,7 +11,7 @@ final class NewConfig
      * The constructor 
      * 
      * @param string $name the name for subcommand 
-     * @param array contains the $argv value 
+     * @param array $args contains the $argv value 
      */
     public function __construct(string $name, array $args)
     {
@@ -21,57 +21,56 @@ final class NewConfig
 
     public function run(): void
     {
-        $json_path = $this->newconfig();
+        $jsonPath = $this->newConfig();
 
-        if ($this->confirm($json_path)) {
-            $state = $this->generate_template($json_path);
-            $this->post_func($state);
+        if ($this->confirm($jsonPath)) {
+            $state = $this->generateTemplate($jsonPath);
+            $this->postFunc($state);
         }
     }
 
-    private function newconfig(): string
+    private function newConfig(): string
     {
-        $message = array(
+        $message = [
             'usage' => "Usage: $this->program <foo.json>",
-            'error' =>
-            "The command '$this->program' takes an another argument for configuration path!",
-        );
+            'error' => "The command '$this->program' takes another argument for configuration path!",
+        ];
 
         $value = array_search($this->program, $this->args);
-        $json_path = $this->args[$value + 1] ?? null;
+        $jsonPath = $this->args[$value + 1] ?? null;
 
-        if ($json_path === null) {
+        if ($jsonPath === null) {
             echo $message['usage'] . PHP_EOL;
             echo $message['error'] . PHP_EOL;
             exit(1);
         } else {
-            return $json_path;
+            return $jsonPath;
         }
     }
 
     /**
      * Confirming when the command is called
      * 
-     * @param string $json_name the filename for JSON
+     * @param string $jsonName the filename for JSON
      * @return bool whether execution for the operation is confirmed 
      */
-    private function confirm(string $json_name): bool
+    private function confirm(string $jsonName): bool
     {
-        $message = array(
-            'confirm_override' =>
-            "$json_name seems to already exists. Are you sure to override the file? [y/N]",
-            'confirm_override_2' =>
-            "Are you *really* sure to override the current $json_name? [y/N]",
+        $message = [
+            'confirmOverride' =>
+                "$jsonName seems to already exists. Are you sure to override the file? [y/N]",
+            'confirmOverride2' =>
+                "Are you *really* sure to override the current $jsonName? [y/N]",
             'confirm' =>
-            "Are you sure to make a new configuration to $json_name? [y/N]",
-        );
+                "Are you sure to make a new configuration to $jsonName? [y/N]",
+        ];
 
-        if (file_exists($json_name)) {
-            echo $message['confirm_override'], ': ';
+        if (file_exists($jsonName)) {
+            echo $message['confirmOverride'], ': ';
             $input = strtolower(trim(fgets(STDIN) ?: ''));
 
             if ($input === 'y') {
-                echo $message['confirm_override_2'], ': ';
+                echo $message['confirmOverride2'], ': ';
                 $input = strtolower(trim(fgets(STDIN) ?: ''));
 
                 if ($input === 'y') {
@@ -96,16 +95,16 @@ final class NewConfig
      * @param string $filename the filename for JSON
      * @return array the status for 'fclose()', and the filename for JSON 
      */
-    private function generate_template(string $filename): array
+    private function generateTemplate(string $filename): array
     {
-        $template_data = $this->json_template();
+        $templateData = $this->jsonTemplate();
 
-        if (!$fp = fopen($filename, 'w')) {;
+        if (!$fp = fopen($filename, 'w')) {
             echo PHP_EOL . "Cannot open file $filename";
             exit(1);
         }
 
-        if (!fwrite($fp, $template_data)) {
+        if (!fwrite($fp, $templateData)) {
             echo PHP_EOL . "Cannot write to file $filename";
             exit(1);
         }
@@ -116,9 +115,9 @@ final class NewConfig
     /**
      * Showing the status after generation for config finishes 
      * 
-     * @return array $array status given from generate_template() 
+     * @return array $array status given from generateTemplate() 
      */
-    private function post_func(array $array): void
+    private function postFunc(array $array): void
     {
         list($state, $filename) = $array;
 
@@ -127,71 +126,81 @@ final class NewConfig
         }
     }
 
-    private function json_template(): string
+    private function jsonTemplate(): string
     {
-        $template = array(
-            'destination' => array(
+        $template = [
+            'destination' => [
                 'webui' => 'C:/foo/stable-diffusion-webui',
                 'checkpoint' => 'C:/foo/stable-diffusion-webui/models/Stable-diffusion',
                 'vae' => 'C:/foo/stable-diffusion-webui/models/VAE',
                 'embeddings' => 'C:/foo/stable-diffusion-webui/embeddings',
                 'hypernetworks' => 'C:/foo/stable-diffusion-webui/models/hypernetworks',
                 'lora' => 'C:/foo/stable-diffusion-webui/models/Lora',
-            ),
-            'source' => array(
-                'checkpoint' => array(array(
-                    'meta' => array(
-                        'comment' => '',
-                        'enabled' => false,
-                    ),
-                    'baseDirectory' => '',
-                    'weightsList' => array(''),
-                    'ignoreList' => array(''),
-                )),
-                'vae' => array(array(
-                    'meta' => array(
-                        'comment' => '',
-                        'enabled' => false,
-                    ),
-                    'baseDirectory' => '',
-                    'weightsList' => array(''),
-                    'ignoreList' => array(''),
-                )),
-                'embeddings' => array(array(
-                    'meta' => array(
-                        'comment' => '',
-                        'enabled' => false,
-                    ),
-                    'baseDirectory' => '',
-                    'weightsList' => array(''),
-                    'ignoreList' => array(''),
-                )),
-                'hypernetworks' => array(array(
-                    'meta' => array(
-                        'comment' => '',
-                        'enabled' => false,
-                    ),
-                    'baseDirectory' => '',
-                    'weightsList' => array(''),
-                    'ignoreList' => array(''),
-                )),
-                'lora' => array(array(
-                    'meta' => array(
-                        'comment' => '',
-                        'enabled' => false,
-                    ),
-                    'baseDirectory' => '',
-                    'weightsList' => array(''),
-                    'ignoreList' => array(''),
-                ),),
-            ),
-        );
+            ],
+            'source' => [
+                'checkpoint' => [
+                    [
+                        'meta' => [
+                            'comment' => '',
+                            'enabled' => false,
+                        ],
+                        'baseDirectory' => '',
+                        'weightsList' => [''],
+                        'ignoreList' => [''],
+                    ],
+                ],
+                'vae' => [
+                    [
+                        'meta' => [
+                            'comment' => '',
+                            'enabled' => false,
+                        ],
+                        'baseDirectory' => '',
+                        'weightsList' => [''],
+                        'ignoreList' => [''],
+                    ],
+                ],
+                'embeddings' => [
+                    [
+                        'meta' => [
+                            'comment' => '',
+                            'enabled' => false,
+                        ],
+                        'baseDirectory' => '',
+                        'weightsList' => [''],
+                        'ignoreList' => [''],
+                    ],
+                ],
+                'hypernetworks' => [
+                    [
+                        'meta' => [
+                            'comment' => '',
+                            'enabled' => false,
+                        ],
+                        'baseDirectory' => '',
+                        'weightsList' => [''],
+                        'ignoreList' => [''],
+                    ],
+                ],
+                'lora' => [
+                    [
+                        'meta' => [
+                            'comment' => '',
+                            'enabled' => false,
+                        ],
+                        'baseDirectory' => '',
+                        'weightsList' => [''],
+                        'ignoreList' => [''],
+                    ],
+                ],
+            ],
+        ];
 
-        $json_encoded = json_encode(
+        $jsonEncoded = json_encode(
             $template,
             JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
         );
 
-        return $json_encoded;
+        return $jsonEncoded;
     }
 }
