@@ -13,7 +13,7 @@ final class Linker
     protected const OPERATION_SYMLINK = 'symlink';
     protected const OPERATION_LINK = 'link';
 
-    private array $keyList = array(
+    private static $keyList = array(
         'checkpoint',
         'vae',
         'embeddings',
