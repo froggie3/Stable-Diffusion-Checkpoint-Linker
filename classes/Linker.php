@@ -7,13 +7,11 @@ declare(strict_types=1);
  * Handles linking and unlinking files based on a JSON configuration.
  */
 final class Linker {
-    const JSON_SOURCE_KEY = 'source';
-    const JSON_DESTINATION_KEY = 'destination';
-    const OPERATION_SYMLINK = 'symlink';
-    const OPERATION_LINK = 'link';
-    const ERROR_INVALID_JSON_PATH = 'Invalid path for JSON';
-    const ERROR_INVALID_JSON = 'Invalid JSON was detected, check if it is valid.';
-
+    protected const JSON_SOURCE_KEY = 'source';
+    protected const JSON_DESTINATION_KEY = 'destination';
+    protected const OPERATION_SYMLINK = 'symlink';
+    protected const OPERATION_LINK = 'link';
+    private array $options;
     private static $keyList = array(
         'checkpoint',
         'vae',
@@ -22,24 +20,17 @@ final class Linker {
         'lora',
         'controlnet'
     );
-    private array $options;
     private array $jsonParams;
+
+    public function __construct($params) {
+        $this->options = getopt('s', array('symlink'));
+        $this->jsonParams = $params;
+    }
 
     /**
      * Run the linking/unlinking process.
      */
     public function run(): int {
-        $this->options = getopt('', array('symlink', 'json:'));
-        $this->jsonParams = $this->configVariablesImport();
-
-        try {
-            if (!$this->jsonParams) {
-                throw new Exception("failed to import config file");
-            }
-        } catch (Exception $e){
-            return 1;
-        }
-
         $operationList = $this->sourceWalk();
         $symlink = isset($this->options[Linker::OPERATION_SYMLINK]);
 
@@ -47,8 +38,6 @@ final class Linker {
         $this->processUnlinks($operationList['unlink']);
 
         $this->displaySummary(count($operationList['link']), count($operationList['unlink']));
-
-        return 0;
     }
 
     private function processLinks(array $links, bool $symlink = false): void {
@@ -121,8 +110,8 @@ final class Linker {
                     foreach ($weightsList as $weight) {
                         if (empty($weight)) continue;
                         $operationList['link'][] = array(
-                            'src' => joinPaths($baseDirectory, $weight),
-                            'dest' => joinPaths(
+                            'src' => Utils::joinPaths($baseDirectory, $weight),
+                            'dest' => Utils::joinPaths(
                                 $this->whichDest($currentKey),
                                 $weight
                             ),
@@ -134,13 +123,13 @@ final class Linker {
                     foreach ($ignoreList as $weight) {
                         if (empty($weight)) continue;
                         $operationList['unlink'][] =
-                            joinPaths($this->whichDest($currentKey), $weight);
+                            Utils::joinPaths($this->whichDest($currentKey), $weight);
                     }
                 } else {
                     foreach ($weightsList as $weight) {
                         if (empty($weight)) continue;
                         $operationList['unlink'][] =
-                            joinPaths($this->whichDest($currentKey), $weight);
+                            Utils::joinPaths($this->whichDest($currentKey), $weight);
                     }
                 }
             }
@@ -159,69 +148,9 @@ final class Linker {
 
         # just find a proper key-value (specific path) pairs
         foreach ($destList as $currentKey => $currentDest) {
-            if ($keyName === $currentKey)
+            if ($keyName === $currentKey){
                 return $currentDest;
-        }
-    }
-
-    /**
-     * Returns actual value when the value of argument exists
-     * otherwise returns false
-     */
-    private function resolveArgumentValue(string $argument, array $argumentList): string {
-        try {
-            if (array_key_exists($argument, $argumentList)) {
-                return $argumentList[$argument];
-            }
-            throw new Exception("Lack of mandatory arguments: $argument");
-        } catch (Exception $e) {
-            // echo "Usage: add --json PATH to specify a config file\n";
-            echo $e->getMessage() . PHP_EOL;
-            return "";
-        }
-    }
-
-    /**
-     * Imports parameters from JSON
-     *
-     * @return array the associated array converted or parsed from JSON
-     */
-    private function configVariablesImport(): array {
-
-        // command-line arguments include --json
-        $jsonPath = $this->resolveArgumentValue('json', $this->options);
-        $params = [];
-
-        // try reading the path from stdin.
-        if (!$jsonPath) {
-            echo "input your path to config file (Ctrl-C or EOF to abort): ";
-            if (is_string($line = fgets(STDIN))) {
-                $jsonPath = trim($line);
-            } else { // bool
-                return [];
             }
         }
-
-        // Check if .json is available but otherwise exit
-        try {
-            if (!($jsonPath && file_exists($jsonPath))) {
-                throw new Exception(Linker::ERROR_INVALID_JSON_PATH);
-            }
-        } catch (Exception $e) {
-            echo $e->getMessage() . PHP_EOL;
-            return [];
-        }
-
-        // Check if .json is valid but otherwise exit
-        try {
-            if (!$params = json_decode(file_get_contents($jsonPath), true)) {
-                throw new Exception(Linker::ERROR_INVALID_JSON);
-            }
-        } catch (Exception $e) {
-            echo $e->getMessage() . PHP_EOL;
-            return [];
-        }
-
-        return $params;
     }
 }
