@@ -79,14 +79,18 @@ final class Linker
         );
     }
 
-    private function filterSourcesAvailable($source, array $keyList): array
+    private function filterSourcesAvailable(array $source, array $destination, array $keyList): array
     {
         // check the existence of each key before adding them to the list
         $filtered = [];
         foreach ($keyList as $v) {
             // skip keys not existed
-            if (!isset($source[$v])) {
-                echo "the config file does not include $v section\n";
+            if (!array_key_exists($v, $source)) {
+                echo "the config file does not include '$v' parameter in the 'source' section\n";
+                continue;
+            }
+            if (!array_key_exists($v, $destination)) {
+                echo "the config file does not include '$v' parameter in the 'destination' section\n";
                 continue;
             }
             $filtered[] = $v;
@@ -97,10 +101,15 @@ final class Linker
     private function sourceWalk(): array
     {
         $source = $this->jsonParams[self::JSON_SOURCE_KEY];
+        $destination = $this->jsonParams[self::JSON_DESTINATION_KEY];
         $operationList = array('link' => array(), 'unlink' => array());
 
         // check the existence of each key before adding them to the list
-        $keyList = $this->filterSourcesAvailable($source, self::$keyList);
+        $keyList = $this->filterSourcesAvailable(
+            self::$keyList,
+            array_keys($source),
+            array_keys($destination)
+        );
 
         foreach ($keyList as $currentKey) {
 
@@ -121,7 +130,7 @@ final class Linker
                         $operationList['link'][] = array(
                             'src' => Utils::joinPaths($baseDirectory, $weight),
                             'dest' => Utils::joinPaths(
-                                $this->whichDest($currentKey),
+                                $destination[$currentKey],
                                 $weight
                             ),
                         );
@@ -132,35 +141,17 @@ final class Linker
                     foreach ($ignoreList as $weight) {
                         if (empty($weight)) continue;
                         $operationList['unlink'][] =
-                            Utils::joinPaths($this->whichDest($currentKey), $weight);
+                            Utils::joinPaths($destination[$currentKey], $weight);
                     }
                 } else {
                     foreach ($weightsList as $weight) {
                         if (empty($weight)) continue;
                         $operationList['unlink'][] =
-                            Utils::joinPaths($this->whichDest($currentKey), $weight);
+                            Utils::joinPaths($destination[$currentKey], $weight);
                     }
                 }
             }
         }
         return $operationList;
-    }
-
-    /**
-     * Returns the proper destination set in the settings
-     *
-     * @param string
-     * @return string
-     */
-    private function whichDest(string $keyName): string
-    {
-        $destList = $this->jsonParams[self::JSON_DESTINATION_KEY];
-
-        # just find a proper key-value (specific path) pairs
-        foreach ($destList as $currentKey => $currentDest) {
-            if ($keyName === $currentKey) {
-                return $currentDest;
-            }
-        }
     }
 }
