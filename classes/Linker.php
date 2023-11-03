@@ -6,12 +6,10 @@ declare(strict_types=1);
  * Class Linker
  * Handles linking and unlinking files based on a JSON configuration.
  */
-final class Linker
+class Linker
 {
     protected const JSON_SOURCE_KEY = 'source';
     protected const JSON_DESTINATION_KEY = 'destination';
-    protected const OPERATION_SYMLINK = 'symlink';
-    protected const OPERATION_LINK = 'link';
 
     private static $keyList = array(
         'checkpoint',
@@ -21,30 +19,27 @@ final class Linker
         'lora',
         'controlnet'
     );
-    private array $options;
     private array $jsonParams;
 
     public function __construct($params)
     {
-        $this->options = getopt('s', array('symlink'));
         $this->jsonParams = $params;
     }
 
     /**
      * Run the linking/unlinking process.
      */
-    public function run()
+    public function run(bool $isSymbolic)
     {
         $operationList = $this->sourceWalk();
-        $symlink = isset($this->options[Linker::OPERATION_SYMLINK]);
 
-        $this->processLinks($operationList['link'], $symlink);
+        $this->processLinks($operationList['link'], $isSymbolic);
         $this->processUnlinks($operationList['unlink']);
 
         $this->displaySummary(count($operationList['link']), count($operationList['unlink']));
     }
 
-    private function processLinks(array $links, bool $symlink = false): void
+    private function processLinks(array $links, bool $isSymbolic = false): void
     {
         foreach ($links as $pathPair) {
             [$src, $dest] = [$pathPair['src'], $pathPair['dest']];
@@ -52,7 +47,7 @@ final class Linker
             // link already exists
             if (file_exists($dest)) continue;
 
-            if ($symlink) {
+            if ($isSymbolic) {
                 $res = symlink($src, $dest);
             } else {
                 $res = link($src, $dest);
@@ -79,7 +74,7 @@ final class Linker
         );
     }
 
-    private function filterSourcesAvailable(array $source, array $destination, array $keyList): array
+    private function filterSourcesAvailable(array $keyList, array $source, array $destination): array
     {
         // check the existence of each key before adding them to the list
         $filtered = [];
@@ -107,8 +102,8 @@ final class Linker
         // check the existence of each key before adding them to the list
         $keyList = $this->filterSourcesAvailable(
             self::$keyList,
-            array_keys($source),
-            array_keys($destination)
+            $source,
+            $destination
         );
 
         foreach ($keyList as $currentKey) {

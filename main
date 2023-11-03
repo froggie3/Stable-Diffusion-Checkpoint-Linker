@@ -13,6 +13,7 @@ if ($hasNewConfig) {
     // command-line arguments include --json
     $options = getopt('', array('symlink', 'json:'));
     $jsonPath = Utils::resolveArgumentValue('json', $options);
+    $isSymbolic = array_key_exists("symlink", $options);
 
     try {
         if (!$jsonPath) {
@@ -31,8 +32,7 @@ if ($hasNewConfig) {
     } catch (Exception $e) {
         return 1;
     }
-
-    (new Linker($params))->run();
+    (new Linker($params))->run($isSymbolic);
 }
 
 return 0;
