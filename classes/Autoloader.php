@@ -26,7 +26,7 @@
 
 /**
  * Simple Recursive Autoloader
- * 
+ *
  * A simple autoloader that loads class files recursively starting in the directory
  * where this class resides.  Additional options can be provided to control the naming
  * convention of the class files.
@@ -67,28 +67,19 @@ class Autoloader
         $directory = new RecursiveDirectoryIterator(static::$pathTop, RecursiveDirectoryIterator::SKIP_DOTS);
 
         if (is_null(static::$fileIterator)) {
-
             static::$fileIterator = new RecursiveIteratorIterator($directory, RecursiveIteratorIterator::LEAVES_ONLY);
-
         }
 
         $filename = $className . static::$fileExt;
 
         foreach (static::$fileIterator as $file) {
-
             if (strtolower($file->getFilename()) === strtolower($filename)) {
-
                 if ($file->isReadable()) {
-
                     include_once $file->getPathname();
-
                 }
                 break;
-
             }
-
         }
-
     }
 
     /**
@@ -111,7 +102,6 @@ class Autoloader
     {
         static::$pathTop = $path;
     }
-
 }
 
 Autoloader::setFileExt('.php');

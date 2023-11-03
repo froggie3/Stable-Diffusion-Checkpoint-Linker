@@ -1,6 +1,9 @@
 <?php
 
-class Utils {
+declare(strict_types=1);
+
+class Utils
+{
     protected const ERROR_INVALID_JSON_PATH = 'Invalid path for JSON';
     protected const ERROR_INVALID_JSON = 'Invalid JSON was detected, check if it is valid.';
 
@@ -29,7 +32,8 @@ class Utils {
      * Returns actual value when the value of argument exists
      * otherwise returns false
      */
-    static function resolveArgumentValue(string $argument, array $argumentList): string {
+    static function resolveArgumentValue(string $argument, array $argumentList): string
+    {
         try {
             if (array_key_exists($argument, $argumentList)) {
                 return $argumentList[$argument];
@@ -47,7 +51,8 @@ class Utils {
      *
      * @return array the associated array converted or parsed from JSON
      */
-    static function configVariablesImport($jsonPath): array {
+    static function configVariablesImport($jsonPath): array
+    {
         $params = [];
 
         // try reading the path from stdin.

@@ -8,10 +8,10 @@ final class NewConfig
     private array $args;
 
     /**
-     * The constructor 
+     * The constructor
      * 
-     * @param string $name the name for subcommand 
-     * @param array $args contains the $argv value 
+     * @param string $name the name for subcommand
+     * @param array $args contains the $argv value
      */
     public function __construct(string $name, array $args)
     {
@@ -50,19 +50,19 @@ final class NewConfig
 
     /**
      * Confirming when the command is called
-     * 
+     *
      * @param string $jsonName the filename for JSON
-     * @return bool whether execution for the operation is confirmed 
+     * @return bool whether execution for the operation is confirmed
      */
     private function confirm(string $jsonName): bool
     {
         $message = [
             'confirmOverride' =>
-                "$jsonName seems to already exists. Are you sure to override the file? [y/N]",
+            "$jsonName seems to already exists. Are you sure to override the file? [y/N]",
             'confirmOverride2' =>
-                "Are you *really* sure to override the current $jsonName? [y/N]",
+            "Are you *really* sure to override the current $jsonName? [y/N]",
             'confirm' =>
-                "Are you sure to make a new configuration to $jsonName? [y/N]",
+            "Are you sure to make a new configuration to $jsonName? [y/N]",
         ];
 
         if (file_exists($jsonName)) {
@@ -90,10 +90,10 @@ final class NewConfig
     }
 
     /**
-     * Generating template and writing into a file 
-     * 
+     * Generating template and writing into a file
+     *
      * @param string $filename the filename for JSON
-     * @return array the status for 'fclose()', and the filename for JSON 
+     * @return array the status for 'fclose()', and the filename for JSON
      */
     private function generateTemplate(string $filename): array
     {
@@ -113,9 +113,9 @@ final class NewConfig
     }
 
     /**
-     * Showing the status after generation for config finishes 
-     * 
-     * @return array $array status given from generateTemplate() 
+     * Showing the status after generation for config finishes
+     *
+     * @return array $array status given from generateTemplate()
      */
     private function postFunc(array $array): void
     {

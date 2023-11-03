@@ -6,13 +6,14 @@ declare(strict_types=1);
  * Class Linker
  * Handles linking and unlinking files based on a JSON configuration.
  */
-final class Linker {
+final class Linker
+{
     protected const JSON_SOURCE_KEY = 'source';
     protected const JSON_DESTINATION_KEY = 'destination';
     protected const OPERATION_SYMLINK = 'symlink';
     protected const OPERATION_LINK = 'link';
-    private array $options;
-    private static $keyList = array(
+
+    private array $keyList = array(
         'checkpoint',
         'vae',
         'embeddings',
@@ -20,9 +21,11 @@ final class Linker {
         'lora',
         'controlnet'
     );
+    private array $options;
     private array $jsonParams;
 
-    public function __construct($params) {
+    public function __construct($params)
+    {
         $this->options = getopt('s', array('symlink'));
         $this->jsonParams = $params;
     }
@@ -30,7 +33,8 @@ final class Linker {
     /**
      * Run the linking/unlinking process.
      */
-    public function run(): int {
+    public function run()
+    {
         $operationList = $this->sourceWalk();
         $symlink = isset($this->options[Linker::OPERATION_SYMLINK]);
 
@@ -40,7 +44,8 @@ final class Linker {
         $this->displaySummary(count($operationList['link']), count($operationList['unlink']));
     }
 
-    private function processLinks(array $links, bool $symlink = false): void {
+    private function processLinks(array $links, bool $symlink = false): void
+    {
         foreach ($links as $pathPair) {
             [$src, $dest] = [$pathPair['src'], $pathPair['dest']];
 
@@ -55,7 +60,8 @@ final class Linker {
         }
     }
 
-    private function processUnlinks(array $unlinkPaths): void {
+    private function processUnlinks(array $unlinkPaths): void
+    {
         foreach ($unlinkPaths as $path) {
             // link already exists
             if (!file_exists($path)) continue;
@@ -64,7 +70,8 @@ final class Linker {
         }
     }
 
-    private function displaySummary(int $linkedCount, int $unlinkedCount): void {
+    private function displaySummary(int $linkedCount, int $unlinkedCount): void
+    {
         printf(
             'Linked %s weights (in disabled: %s weights)' . PHP_EOL,
             $linkedCount,
@@ -72,7 +79,8 @@ final class Linker {
         );
     }
 
-    private function filterSourcesAvailable($source, array $keyList): array {
+    private function filterSourcesAvailable($source, array $keyList): array
+    {
         // check the existence of each key before adding them to the list
         $filtered = [];
         foreach ($keyList as $v) {
@@ -86,7 +94,8 @@ final class Linker {
         return $filtered;
     }
 
-    private function sourceWalk(): array {
+    private function sourceWalk(): array
+    {
         $source = $this->jsonParams[self::JSON_SOURCE_KEY];
         $operationList = array('link' => array(), 'unlink' => array());
 
@@ -143,12 +152,13 @@ final class Linker {
      * @param string
      * @return string
      */
-    private function whichDest(string $keyName): string {
+    private function whichDest(string $keyName): string
+    {
         $destList = $this->jsonParams[self::JSON_DESTINATION_KEY];
 
         # just find a proper key-value (specific path) pairs
         foreach ($destList as $currentKey => $currentDest) {
-            if ($keyName === $currentKey){
+            if ($keyName === $currentKey) {
                 return $currentDest;
             }
         }
