@@ -21,7 +21,7 @@ final class Linker
 
         // すでにリンクが張られていることを検知して、差分だけを表示する
         $filename = basename($target);
-        $lockfile = __DIR__ . "/../.cache/$filename.lock\n";
+        $lockfile = __DIR__ . "/../.cache/$filename.lock";
 
         // symlinkは宛先パスが作成時点で空でなければfalseを返す
         if ($result) {

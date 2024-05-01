@@ -6,5 +6,4 @@ namespace Iigau\StableDiffusionCheckpointLinker;
 
 class Utils
 {
-
 }
