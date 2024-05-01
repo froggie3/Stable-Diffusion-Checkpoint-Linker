@@ -5,8 +5,7 @@
     "vae": "C:/foo/stable-diffusion-webui/models/VAE",
     "embeddings": "C:/foo/stable-diffusion-webui/embeddings",
     "hypernetworks": "C:/foo/stable-diffusion-webui/models/hypernetworks",
-    "lora": "C:/foo/stable-diffusion-webui/models/Lora",
-    "controlnet": "C:/foo/stable-diffusion-webui/extensions/sd-webui-controlnet/models"
+    "lora": "C:/foo/stable-diffusion-webui/models/Lora"
   },
   "source": {
     "checkpoint": [
@@ -75,16 +74,6 @@
       }
     ],
     "lora": [
-      {
-        "meta": {
-          "comment": "",
-          "enabled": false
-        },
-        "baseDirectory": "",
-        "weightsList": []
-      }
-    ],
-    "controlnet": [
       {
         "meta": {
           "comment": "",

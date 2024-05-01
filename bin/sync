@@ -1,0 +1,27 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use Iigau\StableDiffusionCheckpointLinker\Linker;
+use Iigau\StableDiffusionCheckpointLinker\Unlinker;
+use Iigau\StableDiffusionCheckpointLinker\Operations;
+use Iigau\StableDiffusionCheckpointLinker\Syncronizer;
+use Monolog\Handler\StreamHandler;
+use Monolog\Level;
+use Monolog\Logger;
+
+$config = Spyc::YAMLLoad(file_get_contents("php://stdin"));
+$operations = new Operations($config);
+$logger = new Logger("Linker", [new StreamHandler("php://stderr", Level::Debug)]);
+
+$syncronizer = new Syncronizer(
+    $logger,
+    $operations->sync(),
+    new Linker($logger),
+    new Unlinker($logger)
+);
+
+$syncronizer->run();

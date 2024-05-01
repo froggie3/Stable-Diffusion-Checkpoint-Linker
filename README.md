@@ -127,20 +127,6 @@ Please eliminate them while you edit the configuration.
 }
 ```
 
-## About run.ps1
-
-We have a PowerShell script `run.ps1` so the script can be easily triggered from right 
-click context menu in Windows.  While it is useful you have to put some effort to
-edit the PowerShell script, so here we have short explanation about the script:
-
-### `$executables` 
-
-`$executables` can be specified to your favorite text editor you are going to use to edit 
-the configuration. Please assign your choice such as notepad in Windows, Notepad++ and so 
-on, but note that Visual Studio Code is not supported currently (I don't know why, but it 
-doesn't work in actual). 
-
-
 ## Misc
 
 ### Environments
