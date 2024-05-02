@@ -9,12 +9,13 @@ use Iigau\StableDiffusionCheckpointLinker\Linker;
 use Iigau\StableDiffusionCheckpointLinker\Unlinker;
 use Iigau\StableDiffusionCheckpointLinker\Operations;
 use Iigau\StableDiffusionCheckpointLinker\Syncronizer;
+use Iigau\StableDiffusionCheckpointLinker\Procedures;
 use Monolog\Handler\StreamHandler;
 use Monolog\Level;
 use Monolog\Logger;
 
 $config = Spyc::YAMLLoad(file_get_contents("php://stdin"));
-$operations = new Operations($config);
+$operations = new Operations($config, new Procedures());
 $logger = new Logger("Syncronizer", [new StreamHandler("php://stderr", Level::Debug)]);
 
 $syncronizer = new Syncronizer(
@@ -24,4 +25,5 @@ $syncronizer = new Syncronizer(
     new Unlinker($logger)
 );
 
-$syncronizer->run();
+$result = $syncronizer->run();
+$result->print();

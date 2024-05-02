@@ -9,40 +9,46 @@ use Monolog\Logger;
 final class Syncronizer
 {
     public Logger $logger;
-    public array $operation_list;
+    public Procedures $procedures;
     public Linker $linker;
     public Unlinker $unlinker;
 
-    function __construct(Logger $logger, array $operation_list, Linker $linker, Unlinker $unlinker)
+    public function __construct(Logger $logger, Procedures $procedures, Linker $linker, Unlinker $unlinker)
     {
         $this->logger = $logger;
-        $this->operation_list = $operation_list;
+        $this->procedures = $procedures;
         $this->linker = $linker;
         $this->unlinker = $unlinker;
     }
 
-    public function run(): void
+    public function run(): SyncronizerResult
     {
-        list('link' => $link, 'unlink' => $unlink) = $this->operation_list;
+        $newlyLinkedCount = 0;
+        $notLinkedCount = 0;
+        $removedCount = 0;
 
-        $added = 0;
-        $removed = 0;
-
-        foreach ($link as list('src' => $source, 'dest' => $target)) {
+        foreach ($this->procedures->link as list($source, $target)) {
             $result = $this->linker->link($source, $target);
-            if ($result) {
-                ++$added;
+            if ($result === LinkResult::NEWLY_LINKED) {
+                ++$newlyLinkedCount;
+            } elseif ($result === LinkResult::NOT_LINKED) {
+                ++$notLinkedCount;
             }
         }
 
-        foreach ($unlink as $path) {
+        foreach ($this->procedures->unlink as $path) {
             $result = $this->unlinker->unlink($path);
             if ($result) {
-                ++$removed;
+                ++$removedCount;
             }
         }
 
-        printf("%15s%10s%10s%15s\n", "newly linked", "removed", "loaded", "in disabled");
-        printf("%15d%10d%10d%15d\n", $added, $removed, count($link), count($unlink));
+        return new SyncronizerResult(
+            $newlyLinkedCount,
+            count($this->procedures->unlink),
+            $notLinkedCount,
+            $removedCount,
+            count($this->procedures->link) - $notLinkedCount
+        );
     }
 }

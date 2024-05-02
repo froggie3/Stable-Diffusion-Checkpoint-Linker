@@ -20,7 +20,7 @@ final class Unlinker
         $result = @unlink($path);
 
         $filename = basename($path);
-        $lockfile = __DIR__ . "/../.cache/$filename.lock\n";
+        $lockfile = __DIR__ . "/../.cache/$filename.lock";
 
         // ないものを消そうとしたらfalseを返すので、これらは除く
         if ($result) {

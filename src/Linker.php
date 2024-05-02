@@ -10,33 +10,35 @@ final class Linker
 {
     public Logger $logger;
 
-    function __construct(Logger $logger)
+    public function __construct(Logger $logger)
     {
         $this->logger = $logger;
     }
 
-    public function link(string $source, string $target): bool
+    public function link(string $source, string $target): LinkResult 
     {
+        // sourceが見つからない (symlink()ではカバーできない)
+        if (!file_exists($source)) {
+            return LinkResult::NOT_LINKED;
+        }
+
+        // symlink()は宛先パスが作成時点で空のときのみtrueを返す
         $result = @symlink($source, $target);
+        if (!$result) {
+            // targetに既にファイルが存在する場合
+            return LinkResult::NOT_LINKED;
+        }
 
         // すでにリンクが張られていることを検知して、差分だけを表示する
         $filename = basename($target);
         $lockfile = __DIR__ . "/../.cache/$filename.lock";
 
-        // symlinkは宛先パスが作成時点で空でなければfalseを返す
-        if ($result) {
-            // シンボリックリンクを貼った過去の記録があればスルー、なければ作成
-            if (!file_exists($lockfile)) {
-                touch($lockfile);
-
-                $this->logger->debug("successfully made symbolic link", [
-                    'source' => $source,
-                    'target' => $target,
-                ]);
-                return true;
-            }
+        // シンボリックリンクを貼った過去の記録があればスルー、なければ作成
+        if (!file_exists($lockfile)) {
+            touch($lockfile);
+            return LinkResult::NEWLY_LINKED;
         }
 
-        return false;
+        return LinkResult::ALREADY_LINKED;
     }
 }
