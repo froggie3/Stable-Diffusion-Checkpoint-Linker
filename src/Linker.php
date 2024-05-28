@@ -36,6 +36,10 @@ final class Linker
         // シンボリックリンクを貼った過去の記録があればスルー、なければ作成
         if (!file_exists($lockfile)) {
             touch($lockfile);
+            $this->logger->debug("successfully linked", [
+                'source' => $source,
+                'target' => $target,
+            ]);
             return LinkResult::NEWLY_LINKED;
         }
 
