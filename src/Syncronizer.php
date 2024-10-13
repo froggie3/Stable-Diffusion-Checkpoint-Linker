@@ -40,6 +40,9 @@ final class Syncronizer
                     ++$loadedCount;
                     break;
                 case LinkResult::SOURCE_NOT_FOUND;
+                    $this->logger->error("source not found", ['source' => $source]);
+                    ++$notLinkedCount;
+                    break;
                 case LinkResult::SYMLINK_ERROR;
                 case LinkResult::TOUCH_ERROR;
                 case LinkResult::NOT_LINKED;

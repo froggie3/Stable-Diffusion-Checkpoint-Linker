@@ -36,6 +36,9 @@ final class Operations
     private function array_walker()
     {
         foreach (self::$keysLookup as $currentKey) {
+            if (!array_key_exists($currentKey, $this->source)) {
+                continue;
+            }
             foreach ($this->source[$currentKey] as $value) {
                 if (!array_key_exists('ignoreList', $value)) {
                     // ignorelist is optional, needs to be accessible with a key

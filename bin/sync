@@ -16,7 +16,7 @@ use Monolog\Logger;
 
 $config = Spyc::YAMLLoad(file_get_contents("php://stdin"));
 $operations = new Operations($config);
-$logger = new Logger("Syncronizer", [new StreamHandler("php://stderr", Level::Debug)]);
+$logger = new Logger("Syncronizer", [new StreamHandler("php://stderr", Level::Info)]);
 
 $syncronizer = new Syncronizer(
     $logger,
