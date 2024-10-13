@@ -15,7 +15,7 @@ use Monolog\Level;
 use Monolog\Logger;
 
 $config = Spyc::YAMLLoad(file_get_contents("php://stdin"));
-$operations = new Operations($config, new Procedures());
+$operations = new Operations($config);
 $logger = new Logger("Syncronizer", [new StreamHandler("php://stderr", Level::Debug)]);
 
 $syncronizer = new Syncronizer(

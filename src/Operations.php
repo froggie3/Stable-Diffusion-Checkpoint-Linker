@@ -16,86 +16,88 @@ final class Operations
     private array $target;
     private Procedures $procedures;
 
-    function __construct(array $configParameters, Procedures $procedures)
+    function __construct(array $configParameters)
     {
         $this->source = $configParameters['source'];
         $this->target = $configParameters['destination'];
-        $this->procedures = $procedures;
+        $this->procedures = new Procedures();
     }
 
-    public function retrieveItemsThenPush(array $search, ProceduresArray &$arr, callable $callback): void
+    public function retrieveItemsThenPush(array $search, array &$arr, callable $callback): void
     {
         foreach ($search as $weight) {
-            if (empty($weight)) continue;
+            if (empty($weight)) {
+                continue;
+            }
             $arr[] = $callback($weight);
+        }
+    }
+
+    private function array_walker()
+    {
+        foreach (self::$keysLookup as $currentKey) {
+            foreach ($this->source[$currentKey] as $value) {
+                if (!array_key_exists('ignoreList', $value)) {
+                    // ignorelist is optional, needs to be accessible with a key
+                    $value['ignoreList'] = array();
+                }
+                yield [
+                    'currentKey' => $currentKey,
+                    ...$value
+                ];
+            }
         }
     }
 
     public function clear(): Procedures
     {
-        $keysLookup = self::$keysLookup;
+        foreach ($this->array_walker() as
+            list(
+                'currentKey' => $currentKey,
+                'ignoreList' => $ignoreList,
+                'weightsList' => $weightsList,
+            )) {
 
-        foreach ($keysLookup as $current_key) {
-            foreach ($this->source[$current_key] as
-                list(
-                    'weightsList'   => $weightsList,
-                    'meta'          => list('enabled' => $isEnabledWeight),
-                    'baseDirectory' => $baseDirectory
-                )) {
-
-                // ignorelist can be omitted, meaning values are not always
-                // accessible with a specific key 
-                $ignoreList = $weights['ignoreList'] ?? [];
-                $weightsList = $weightsList ?? [];
-
-                $this->retrieveItemsThenPush(
-                    [...$weightsList, ...$ignoreList],
-                    $this->procedures->unlink,
-                    fn (string $weight): string => $this->target[$current_key] . "/$weight"
-                );
-            }
+            $this->retrieveItemsThenPush(
+                [...$weightsList ?? array(), ...$ignoreList ?? array()],
+                $this->procedures->unlink,
+                fn (string $weight): string => $this->target[$currentKey] . "/$weight"
+            );
         }
-
         return $this->procedures;
     }
 
     public function sync(): Procedures
     {
-        $keysLookup = self::$keysLookup;
+        foreach ($this->array_walker() as
+            list(
+                'currentKey' => $currentKey,
+                'weightsList'   => $weightsList,
+                'ignoreList' => $ignoreList,
+                'meta'          => list('enabled' => $isEnabledWeight),
+                'baseDirectory' => $baseDirectory
+            )) {
 
-        foreach ($keysLookup as $current_key) {
-            foreach ($this->source[$current_key] as
-                list(
-                    'weightsList'   => $weightsList,
-                    'meta'          => list('enabled' => $isEnabledWeight),
-                    'baseDirectory' => $baseDirectory
-                )) {
-
-                // ignorelist can be omitted, meaning values are not always
-                // accessible with a specific key 
-                $ignoreList = $weights['ignoreList'] ?? array();
-
-                if ($isEnabledWeight) {
-                    $this->retrieveItemsThenPush(
-                        $weightsList,
-                        $this->procedures->link,
-                        fn (string $weight): array => array(
-                            "$baseDirectory/$weight",
-                            $this->target[$current_key] . "/$weight",
-                        )
-                    );
-                    $this->retrieveItemsThenPush(
-                        $ignoreList,
-                        $this->procedures->unlink,
-                        fn (string $weight): string =>$this->target[$current_key] . "/$weight"
-                    );
-                } else {
-                    $this->retrieveItemsThenPush(
-                        $weightsList,
-                        $this->procedures->unlink,
-                        fn (string $weight): string => $this->target[$current_key] . "/$weight"
-                    );
-                }
+            if ($isEnabledWeight) {
+                $this->retrieveItemsThenPush(
+                    $weightsList,
+                    $this->procedures->link,
+                    fn (string $weight): array => array(
+                        "$baseDirectory/$weight",
+                        $this->target[$currentKey] . "/$weight",
+                    )
+                );
+                $this->retrieveItemsThenPush(
+                    $ignoreList,
+                    $this->procedures->unlink,
+                    fn (string $weight): string => $this->target[$currentKey] . "/$weight"
+                );
+            } else {
+                $this->retrieveItemsThenPush(
+                    $weightsList,
+                    $this->procedures->unlink,
+                    fn (string $weight): string => $this->target[$currentKey] . "/$weight"
+                );
             }
         }
 

@@ -26,13 +26,26 @@ final class Syncronizer
         $newlyLinkedCount = 0;
         $notLinkedCount = 0;
         $removedCount = 0;
+        $loadedCount = 0;
 
         foreach ($this->procedures->link as list($source, $target)) {
             $result = $this->linker->link($source, $target);
-            if ($result === LinkResult::NEWLY_LINKED) {
-                ++$newlyLinkedCount;
-            } elseif ($result === LinkResult::NOT_LINKED) {
-                ++$notLinkedCount;
+            switch ($result) {
+                case LinkResult::NEWLY_LINKED:
+                    $this->logger->info("successfully linked", ['source' => $source, 'target' => $target,]);
+                    ++$newlyLinkedCount;
+                    break;
+                case LinkResult::ALREADY_LINKED:
+                    $this->logger->debug("already linked", ['source' => $source, 'target' => $target,]);
+                    ++$loadedCount;
+                    break;
+                case LinkResult::SOURCE_NOT_FOUND;
+                case LinkResult::SYMLINK_ERROR;
+                case LinkResult::TOUCH_ERROR;
+                case LinkResult::NOT_LINKED;
+                default:
+                    $this->logger->error("error occured", ['source' => $source, 'target' => $target,]);
+                    ++$notLinkedCount;
             }
         }
 
@@ -45,10 +58,10 @@ final class Syncronizer
 
         return new SyncronizerResult(
             $newlyLinkedCount,
-            count($this->procedures->unlink),
             $notLinkedCount,
             $removedCount,
-            count($this->procedures->link) - $notLinkedCount
+            $loadedCount,
+            count($this->procedures->unlink)
         );
     }
 }
