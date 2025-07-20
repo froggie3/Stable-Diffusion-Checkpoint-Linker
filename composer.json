@@ -1,0 +1,13 @@
+{
+    "name": "iigau/stable-diffusion-checkpoint-linker",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "Iigau\\StableDiffusionCheckpointLinker\\": "src/"
+        }
+    },
+    "require": {
+        "monolog/monolog": "^3.6",
+        "mustangostang/spyc": "^0.6.3"
+    }
+}

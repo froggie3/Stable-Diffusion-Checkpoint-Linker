@@ -8,53 +8,59 @@ use Monolog\Logger;
 
 final class Linker
 {
-    public Logger $logger;
+    protected Logger $logger;
+    protected LinkRecordRepository $repository;
 
-    public function __construct(Logger $logger)
+    public function __construct(Logger $logger, LinkRecordRepository $repository)
     {
         $this->logger = $logger;
+        $this->repository = $repository;
     }
 
-    /**
-     * アルゴリズムについてはこちらを参照
-     * https://scrapbox.io/yokkin/20241013
-     */
+    public function createRecord(string $source, string $target): RecordResult
+    {
+        try {
+            if (!$this->repository->createRecord($source, $target)) {
+                return RecordResult::RECORD_CREATION_ERROR;
+            }
+        } catch (\Throwable $e) {
+            $this->logger->error('Record creation error: ' . $e->getMessage());
+            return RecordResult::RECORD_CREATION_ERROR;
+        }
+
+        return RecordResult::NEWLY_LINKED;
+    }
+
     public function link(string $source, string $target): LinkResult
     {
-        // sourceが見つからない (symlink()ではカバーできない)
-        if (file_exists($source)) {
-            // すでにリンクが張られていることを検知して、差分だけを表示する
-            $filename = basename($target);
-            $lockfile = __DIR__ . "/../.cache/$filename.lock";
-
-            if (file_exists($target)) {
-                if (file_exists($lockfile)) {
-                    return LinkResult::ALREADY_LINKED;
-                } else {
-                    // 論理的におかしい
-                    return LinkResult::NOT_LINKED;
-                }
-            } else {
-                // symlink()は宛先パスが作成時点で空のときのみtrueを返す
-                $symlinkResult = @symlink($source, $target);
-                if ($symlinkResult) {
-                    if (file_exists($lockfile)) {
-                        // 論理的におかしい
-                        return LinkResult::NOT_LINKED;
-                    } else {
-                        $touchResult = @touch($lockfile);
-                        if ($touchResult) {
-                            return LinkResult::NEWLY_LINKED;
-                        } else {
-                            return LinkResult::TOUCH_ERROR;
-                        }
-                    }
-                } else {
-                    return LinkResult::SYMLINK_ERROR;
-                }
-            }
-        } else {
-            return LinkResult::SOURCE_NOT_FOUND;
+        if (!@symlink($source, $target)) {
+            return LinkResult::SYMLINK_ERROR;
         }
+
+        return LinkResult::ACCEPT;
+    }
+
+    public function test(string $source, string $target): SyncObjectStatus
+    {
+        if (!file_exists($source)) {
+            return SyncObjectStatus::SOURCE_NOT_FOUND;
+        }
+
+        $targetExists = file_exists($target);
+        $recordExists = $this->repository->hasRecord($target);
+
+        if ($targetExists && $recordExists) {
+            return SyncObjectStatus::ALREADY_LINKED;
+        }
+
+        if ($targetExists && ! $recordExists) {
+            return SyncObjectStatus::TARGET_ALREADY_EXISTS_WITHOUT_RECORD;
+        }
+
+        if (! $targetExists && $recordExists) {
+            return SyncObjectStatus::RECORD_EXISTS_WITHOUT_LINK;
+        }
+
+        return SyncObjectStatus::READY;
     }
 }

@@ -9,7 +9,8 @@ use Iigau\StableDiffusionCheckpointLinker\Procedures;
 final class Operations
 {
     private static $keysLookup = array(
-        'checkpoint', 'vae', 'embeddings', 'hypernetworks', 'lora', 'controlnet', 'adetailer'
+        'checkpoint', 'vae', 'clip', 'embeddings', 'hypernetworks', 'lora', 'controlnet', 'adetailer',
+        'adetailer_segm', 'adetailer_bbox'
     );
 
     private array $source;

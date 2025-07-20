@@ -4,26 +4,11 @@
 declare(strict_types=1);
 
 require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/common.php';
 
-use Iigau\StableDiffusionCheckpointLinker\Linker;
-use Iigau\StableDiffusionCheckpointLinker\Unlinker;
-use Iigau\StableDiffusionCheckpointLinker\Operations;
 use Iigau\StableDiffusionCheckpointLinker\Syncronizer;
-use Iigau\StableDiffusionCheckpointLinker\Procedures;
-use Monolog\Handler\StreamHandler;
-use Monolog\Level;
-use Monolog\Logger;
 
-$config = Spyc::YAMLLoad(file_get_contents("php://stdin"));
-$operations = new Operations($config);
-$logger = new Logger("Syncronizer", [new StreamHandler("php://stderr", Level::Info)]);
-
-$syncronizer = new Syncronizer(
-    $logger,
-    $operations->sync(),
-    new Linker($logger),
-    new Unlinker($logger)
-);
-
+$procedures = $operations->sync();
+$syncronizer = new Syncronizer($logger, $procedures, $linker, $unlinker);
 $result = $syncronizer->run();
 $result->print();
