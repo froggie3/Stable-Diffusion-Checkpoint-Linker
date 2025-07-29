@@ -10,7 +10,7 @@ final class Operations
 {
     private static $keysLookup = array(
         'checkpoint', 'vae', 'clip', 'embeddings', 'hypernetworks', 'lora', 'controlnet', 'adetailer',
-        'adetailer_segm', 'adetailer_bbox'
+        'adetailer_segm', 'adetailer_bbox', 'diffusion_models'
     );
 
     private array $source;
