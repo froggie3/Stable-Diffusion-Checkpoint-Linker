@@ -6,16 +6,9 @@ namespace Iigau\StableDiffusionCheckpointLinker;
 
 use Monolog\Logger;
 
-final class Linker
+final class Linker implements LinkerInterface
 {
-    protected Logger $logger;
-    protected LinkRecordRepository $repository;
-
-    public function __construct(Logger $logger, LinkRecordRepository $repository)
-    {
-        $this->logger = $logger;
-        $this->repository = $repository;
-    }
+    public function __construct(protected Logger $logger, protected LinkRecordRepository $repository) {}
 
     public function createRecord(string $source, string $target): RecordResult
     {

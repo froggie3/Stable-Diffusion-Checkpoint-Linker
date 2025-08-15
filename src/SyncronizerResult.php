@@ -6,20 +6,7 @@ namespace Iigau\StableDiffusionCheckpointLinker;
 
 final class SyncronizerResult
 {
-    protected $newlyLinkedCount = 0;
-    protected $notLinkedCount = 0;
-    protected $removedCount = 0;
-    protected $loadedCount = 0;
-    protected $inDisabledCount = 0;
-
-    public function __construct(int $newlyLinkedCount, int $notLinkedCount, int $removedCount, int $loadedCount, int $inDisabledCount)
-    {
-        $this->newlyLinkedCount = $newlyLinkedCount;
-        $this->notLinkedCount = $notLinkedCount;
-        $this->removedCount = $removedCount;
-        $this->loadedCount = $loadedCount;
-        $this->inDisabledCount = $inDisabledCount;
-    }
+    public function __construct(protected int $newlyLinkedCount = 0, protected int $notLinkedCount = 0, protected int $removedCount = 0, protected int $loadedCount = 0, protected int $inDisabledCount = 0) {}
 
     public function print(): void
     {
