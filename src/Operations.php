@@ -8,19 +8,10 @@ use Iigau\StableDiffusionCheckpointLinker\Procedures;
 
 final class Operations
 {
-    private static $keysLookup = array(
-        'checkpoint', 'vae', 'clip', 'embeddings', 'hypernetworks', 'lora', 'controlnet', 'adetailer',
-        'adetailer_segm', 'adetailer_bbox', 'diffusion_models'
-    );
-
-    private array $source;
-    private array $target;
     private Procedures $procedures;
 
-    function __construct(array $configParameters)
+    public function __construct(private array $lookupKeys, private array $source, private array $target)
     {
-        $this->source = $configParameters['source'];
-        $this->target = $configParameters['destination'];
         $this->procedures = new Procedures();
     }
 
@@ -36,7 +27,8 @@ final class Operations
 
     private function array_walker()
     {
-        foreach (self::$keysLookup as $currentKey) {
+        foreach ($this->lookupKeys as $currentKey) {
+            // var_dump($currentKey);
             if (!array_key_exists($currentKey, $this->source)) {
                 continue;
             }

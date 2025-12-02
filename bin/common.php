@@ -13,8 +13,12 @@ use Monolog\Level;
 use Monolog\Logger;
 
 $config = Spyc::YAMLLoad(file_get_contents("php://stdin"));
-$operations = new Operations($config);
 
+$operations = new Operations(
+    $config['lookupKeys'] ?? [],
+    $config['source'],
+    $config['destination']
+);
 $stream = new StreamHandler("php://stderr", Level::Info);
 $output = "%message% %context% %extra%\n";
 $formatter = new \Monolog\Formatter\LineFormatter(
