@@ -9,7 +9,6 @@ use Iigau\StableDiffusionCheckpointLinker\Procedures;
 final class Operations
 {
     private Procedures $procedures;
-    private Counter $counter;
     private SyncStateFactory $factory;
 
     public function __construct(
@@ -18,11 +17,11 @@ final class Operations
         private array $target,
         private Linker $linker,
         private Unlinker $unlinker,
+        private Counter $counter,
         \Monolog\Logger $logger
     ) {
         $this->procedures = new Procedures();
-        $this->counter = new Counter();
-        $this->factory = new SyncStateFactory($logger, $linker, $unlinker, $this->counter);
+        $this->factory = new SyncStateFactory($logger, $linker, $unlinker, $counter);
     }
 
     public function retrieveItemsThenPush(array $search, array &$arr, callable $callback): void

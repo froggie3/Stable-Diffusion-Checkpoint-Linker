@@ -9,6 +9,6 @@ require __DIR__ . '/common.php';
 use Iigau\StableDiffusionCheckpointLinker\Syncronizer;
 
 $procedures = $operations->clear();
-$syncronizer = new Syncronizer($logger, $procedures, $linker, $unlinker);
+$syncronizer = new Syncronizer($logger, $procedures, $linker, $unlinker, $counter);
 $result = $syncronizer->run();
 $result->print();

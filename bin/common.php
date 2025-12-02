@@ -7,6 +7,7 @@ require __DIR__ . '/../vendor/autoload.php';
 use Iigau\StableDiffusionCheckpointLinker\Linker;
 use Iigau\StableDiffusionCheckpointLinker\Unlinker;
 use Iigau\StableDiffusionCheckpointLinker\Operations;
+use Iigau\StableDiffusionCheckpointLinker\Counter;
 use Iigau\StableDiffusionCheckpointLinker\SQLiteRecordRepository;
 use Monolog\Handler\StreamHandler;
 use Monolog\Level;
@@ -31,11 +32,14 @@ $repo = new SQLiteRecordRepository(__DIR__ . '/../data/links.sqlite');
 $linker = new Linker($logger, $repo);
 $unlinker = new Unlinker($logger, $repo);
 
+$counter = new Counter();
+
 $operations = new Operations(
     $config['lookupKeys'] ?? [],
     $config['source'],
     $config['destination'],
     $linker,
     $unlinker,
+    $counter,
     $logger
 );
