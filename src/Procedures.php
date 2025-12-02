@@ -6,11 +6,11 @@ namespace Iigau\StableDiffusionCheckpointLinker;
 
 final class Procedures
 {
-    public array $link, $unlink;
+    /** @var Operation[] */
+    public array $operations;
 
     public function __construct()
     {
-        $this->link = [];
-        $this->unlink = [];
+        $this->operations = [];
     }
 }

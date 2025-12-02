@@ -12,38 +12,25 @@ final class Syncronizer
         private Logger $logger,
         private Procedures $procedures,
         private Linker $linker,
-        private Unlinker $unlinker
+        private Unlinker $unlinker,
+        private Counter $counter
     ) {}
 
     public function run(): SyncronizerResult
     {
-        $counter = new Counter();
-        $factory = new SyncStateFactory($this->logger, $this->linker, $this->unlinker, $counter);
+        $factory = new SyncStateFactory($this->logger, $this->linker, $this->unlinker, $this->counter);
 
-        foreach ($this->procedures->link as list($source, $target)) {
-            $status = $this->linker->test($source, $target);
-            $state = $factory->create($status, $source, $target);
-
-            if (!$state->shouldSync()) {
-                continue;
-            }
-
-            $state->sync();
-        }
-
-        foreach ($this->procedures->unlink as $path) {
-            if ($this->unlinker->unlink($path)) {
-                $counter->increment('removed');
-            }
+        foreach ($this->procedures->operations as $operation) {
+            $operation->execute();
         }
 
         return new SyncronizerResult(
-            $counter->get('newlyLinked'),
-            $counter->get('error'),
-            $counter->get('removed'),
-            $counter->get('alreadyLinked'),
-            count($this->procedures->unlink),
-            $counter->get('inconsistent')
+            $this->counter->get('newlyLinked'),
+            $this->counter->get('error'),
+            $this->counter->get('removed'),
+            $this->counter->get('alreadyLinked'),
+            count($this->procedures->operations),
+            $this->counter->get('inconsistent')
         );
     }
 }
