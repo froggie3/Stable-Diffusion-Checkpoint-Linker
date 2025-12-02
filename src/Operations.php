@@ -9,10 +9,20 @@ use Iigau\StableDiffusionCheckpointLinker\Procedures;
 final class Operations
 {
     private Procedures $procedures;
+    private Counter $counter;
+    private SyncStateFactory $factory;
 
-    public function __construct(private array $lookupKeys, private array $source, private array $target)
-    {
+    public function __construct(
+        private array $lookupKeys,
+        private array $source,
+        private array $target,
+        private Linker $linker,
+        private Unlinker $unlinker,
+        \Monolog\Logger $logger
+    ) {
         $this->procedures = new Procedures();
+        $this->counter = new Counter();
+        $this->factory = new SyncStateFactory($logger, $linker, $unlinker, $this->counter);
     }
 
     public function retrieveItemsThenPush(array $search, array &$arr, callable $callback): void
@@ -56,8 +66,12 @@ final class Operations
 
             $this->retrieveItemsThenPush(
                 [...$weightsList ?? array(), ...$ignoreList ?? array()],
-                $this->procedures->unlink,
-                fn (string $weight): string => $this->target[$currentKey] . "/$weight"
+                $this->procedures->operations,
+                fn (string $weight): Operation => new UnlinkOperation(
+                    $this->target[$currentKey] . "/$weight",
+                    $this->unlinker,
+                    $this->counter
+                )
             );
         }
         return $this->procedures;
@@ -77,22 +91,33 @@ final class Operations
             if ($isEnabledWeight) {
                 $this->retrieveItemsThenPush(
                     $weightsList,
-                    $this->procedures->link,
-                    fn (string $weight): array => array(
+                    $this->procedures->operations,
+                    fn (string $weight): Operation => new LinkOperation(
                         "$baseDirectory/$weight",
                         $this->target[$currentKey] . "/$weight",
+                        $this->linker,
+                        $this->counter,
+                        $this->factory
                     )
                 );
                 $this->retrieveItemsThenPush(
                     $ignoreList,
-                    $this->procedures->unlink,
-                    fn (string $weight): string => $this->target[$currentKey] . "/$weight"
+                    $this->procedures->operations,
+                    fn (string $weight): Operation => new UnlinkOperation(
+                        $this->target[$currentKey] . "/$weight",
+                        $this->unlinker,
+                        $this->counter
+                    )
                 );
             } else {
                 $this->retrieveItemsThenPush(
                     $weightsList,
-                    $this->procedures->unlink,
-                    fn (string $weight): string => $this->target[$currentKey] . "/$weight"
+                    $this->procedures->operations,
+                    fn (string $weight): Operation => new UnlinkOperation(
+                        $this->target[$currentKey] . "/$weight",
+                        $this->unlinker,
+                        $this->counter
+                    )
                 );
             }
         }

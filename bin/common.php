@@ -14,11 +14,6 @@ use Monolog\Logger;
 
 $config = Spyc::YAMLLoad(file_get_contents("php://stdin"));
 
-$operations = new Operations(
-    $config['lookupKeys'] ?? [],
-    $config['source'],
-    $config['destination']
-);
 $stream = new StreamHandler("php://stderr", Level::Info);
 $output = "%message% %context% %extra%\n";
 $formatter = new \Monolog\Formatter\LineFormatter(
@@ -35,3 +30,12 @@ $repo = new SQLiteRecordRepository(__DIR__ . '/../data/links.sqlite');
 
 $linker = new Linker($logger, $repo);
 $unlinker = new Unlinker($logger, $repo);
+
+$operations = new Operations(
+    $config['lookupKeys'] ?? [],
+    $config['source'],
+    $config['destination'],
+    $linker,
+    $unlinker,
+    $logger
+);

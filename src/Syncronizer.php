@@ -20,21 +20,8 @@ final class Syncronizer
         $counter = new Counter();
         $factory = new SyncStateFactory($this->logger, $this->linker, $this->unlinker, $counter);
 
-        foreach ($this->procedures->link as list($source, $target)) {
-            $status = $this->linker->test($source, $target);
-            $state = $factory->create($status, $source, $target);
-
-            if (!$state->shouldSync()) {
-                continue;
-            }
-
-            $state->sync();
-        }
-
-        foreach ($this->procedures->unlink as $path) {
-            if ($this->unlinker->unlink($path)) {
-                $counter->increment('removed');
-            }
+        foreach ($this->procedures->operations as $operation) {
+            $operation->execute();
         }
 
         return new SyncronizerResult(
@@ -42,7 +29,7 @@ final class Syncronizer
             $counter->get('error'),
             $counter->get('removed'),
             $counter->get('alreadyLinked'),
-            count($this->procedures->unlink),
+            count($this->procedures->operations),
             $counter->get('inconsistent')
         );
     }
