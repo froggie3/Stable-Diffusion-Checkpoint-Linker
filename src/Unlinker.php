@@ -6,15 +6,13 @@ namespace Iigau\StableDiffusionCheckpointLinker;
 
 use Monolog\Logger;
 
-final class Unlinker
+class Unlinker implements UnlinkerInterface
 {
-    private Logger $logger;
-    private LinkRecordRepository $repository;
+    private LoggerWrapper $logger;
 
-    public function __construct(Logger $logger, LinkRecordRepository $repository)
+    public function __construct(Logger $logger, private LinkRecordRepository $repository)
     {
-        $this->logger = $logger;
-        $this->repository = $repository;
+        $this->logger = new LoggerWrapper($logger);
     }
 
     public function unlink(string $path): bool
