@@ -8,7 +8,10 @@ use Monolog\Logger;
 
 final class Linker implements LinkerInterface
 {
-    public function __construct(protected Logger $logger, protected LinkRecordRepository $repository) {}
+    public function __construct(
+	protected Logger $logger,
+	protected LinkRecordRepository $repository
+    ) {}
 
     public function createRecord(string $source, string $target): RecordResult
     {
