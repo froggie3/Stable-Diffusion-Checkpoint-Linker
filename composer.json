@@ -1,13 +1,18 @@
 {
     "name": "iigau/stable-diffusion-checkpoint-linker",
     "type": "project",
+    "license": "MIT",
     "autoload": {
         "psr-4": {
             "Iigau\\StableDiffusionCheckpointLinker\\": "src/"
         }
     },
     "require": {
+        "php": ">=8.1",
         "monolog/monolog": "^3.6",
-        "mustangostang/spyc": "^0.6.3"
+        "symfony/yaml": "^6.4"
+    },
+    "scripts": {
+        "test": "@php tests/run.php"
     }
 }

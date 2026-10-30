@@ -1,58 +1,42 @@
+lookupKeys:
+  - checkpoint
+  - vae
+  - embeddings
+  - hypernetworks
+  - lora
+  - controlnet
+
 destination:
-    webui: /home/iigau/linker/test-target
-    checkpoint: /home/iigau/linker/test-target/models/Stable-diffusion
-    vae: /home/iigau/linker/test-target/models/VAE
-    embeddings: /home/iigau/linker/test-target/embeddings
-    hypernetworks: /home/iigau/linker/test-target/models/hypernetworks
-    lora: /home/iigau/linker/test-target/models/Lora
-    controlnet: /home/iigau/linker/test-target/models/ControlNet
+  checkpoint: /srv/stable-diffusion/models/Stable-diffusion
+  vae: /srv/stable-diffusion/models/VAE
+  embeddings: /srv/stable-diffusion/embeddings
+  hypernetworks: /srv/stable-diffusion/models/hypernetworks
+  lora: /srv/stable-diffusion/models/Lora
+  controlnet: /srv/stable-diffusion/models/ControlNet
 
 source:
-    checkpoint:
-        - meta:
-              # You can leave some comments on each entry
-              enabled: true
-          baseDirectory: /home/iigau/linker/test-source/foo
-          weightsList:
-              - foo_00.safetensors
-              - foo_01.safetensors
-              - foo_02.safetensors
-              - foo_03.safetensors
-              - foo_04.safetensors
-              - foo_05.safetensors
-              - foo_06.safetensors
-              - foo_07.safetensors
-              - foo_08.safetensors
-              - foo_09.safetensors
-          ignoreList: []
-        - meta:
-              # if 'enabled' set to 'false', then all the models in 'weightList' will be unlinked.
-              enabled: true 
-          baseDirectory: /home/iigau/linker/test-source/bar
-          weightsList:
-              - bar_00.safetensors
-              - bar_01.safetensors
-              - bar_02.safetensors
-              - bar_03.safetensors
-              - bar_04.safetensors
-          ignoreList: 
-              - bar_05.safetensors
-              - bar_06.safetensors
-              - bar_07.safetensors
-              - bar_08.safetensors
-              - bar_09.safetensors
-        - meta:
-              # if 'enabled' set to 'false', then all the models in 'weightList' will be unlinked.
-              enabled: false
-          baseDirectory: /home/iigau/linker/test-source/baz
-          weightsList:
-              - baz_00.safetensors
-              - baz_01.safetensors
-              - baz_02.safetensors
-    
-    vae: []
-    embeddings: []
-    hypernetworks: []
-    lora: []
-    controlnet: []
+  checkpoint:
+    - meta:
+        enabled: true
+      baseDirectory: /srv/models/checkpoints/primary
+      weightsList:
+        - example-primary.safetensors
+      ignoreList: []
+    - meta:
+        enabled: true
+      baseDirectory: /srv/models/checkpoints/secondary
+      weightsList:
+        - example-secondary.safetensors
+      ignoreList: []
+    - meta:
+        enabled: false
+      baseDirectory: /srv/models/checkpoints/archive
+      weightsList:
+        - example-archived.safetensors
+      ignoreList: []
+  vae: []
+  embeddings: []
+  hypernetworks: []
+  lora: []
+  controlnet: []
 

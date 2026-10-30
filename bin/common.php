@@ -9,11 +9,21 @@ use Iigau\StableDiffusionCheckpointLinker\Unlinker;
 use Iigau\StableDiffusionCheckpointLinker\Operations;
 use Iigau\StableDiffusionCheckpointLinker\Counter;
 use Iigau\StableDiffusionCheckpointLinker\SQLiteRecordRepository;
+use Iigau\StableDiffusionCheckpointLinker\Config\ConfigurationLoader;
 use Monolog\Handler\StreamHandler;
 use Monolog\Level;
 use Monolog\Logger;
 
-$config = Spyc::YAMLLoad(file_get_contents("php://stdin"));
+try {
+    $input = file_get_contents('php://stdin');
+    if ($input === false) {
+        throw new InvalidArgumentException('Failed to read configuration from stdin.');
+    }
+    $config = (new ConfigurationLoader())->load($input);
+} catch (InvalidArgumentException $e) {
+    fwrite(STDERR, 'Configuration error: ' . $e->getMessage() . PHP_EOL);
+    exit(1);
+}
 
 $stream = new StreamHandler("php://stderr", Level::Info);
 $output = "%message% %context% %extra%\n";
@@ -35,7 +45,7 @@ $unlinker = new Unlinker($logger, $repo);
 $counter = new Counter();
 
 $operations = new Operations(
-    $config['lookupKeys'] ?? [],
+    $config['lookupKeys'],
     $config['source'],
     $config['destination'],
     $linker,
