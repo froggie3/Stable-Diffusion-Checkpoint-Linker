@@ -21,7 +21,7 @@ final class PathIdentity
         $parts = explode('/', trim($path, '/'));
         for ($count = count($parts) - 1; $count >= 0; --$count) {
             $prefix = '/' . implode('/', array_slice($parts, 0, $count));
-            $realPrefix = realpath($prefix === '' ? '/' : $prefix);
+            $realPrefix = realpath($prefix);
             if ($realPrefix !== false) {
                 $suffix = array_slice($parts, $count);
                 return $this->normalize(rtrim($realPrefix, '/') . '/' . implode('/', $suffix));

@@ -6,9 +6,37 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use Iigau\StableDiffusionCheckpointLinker\Config\ConfigurationLoader;
 
+final class TestRunner
+{
+    private int $passed = 0;
+
+    private int $failed = 0;
+
+    public function run(string $name, callable $callback): void
+    {
+        try {
+            $callback();
+            ++$this->passed;
+            echo "PASS $name\n";
+        } catch (Throwable $e) {
+            ++$this->failed;
+            fwrite(STDERR, "FAIL $name: {$e->getMessage()}\n");
+        }
+    }
+
+    public function report(): void
+    {
+        echo "{$this->passed} passed, {$this->failed} failed\n";
+    }
+
+    public function exitCode(): int
+    {
+        return $this->failed === 0 ? 0 : 1;
+    }
+}
+
 $loader = new ConfigurationLoader();
-$passed = 0;
-$failed = 0;
+$testRunner = new TestRunner();
 
 function check(bool $condition, string $message): void
 {
@@ -19,15 +47,8 @@ function check(bool $condition, string $message): void
 
 function test(string $name, callable $callback): void
 {
-    global $passed, $failed;
-    try {
-        $callback();
-        ++$passed;
-        echo "PASS $name\n";
-    } catch (Throwable $e) {
-        ++$failed;
-        fwrite(STDERR, "FAIL $name: {$e->getMessage()}\n");
-    }
+    global $testRunner;
+    $testRunner->run($name, $callback);
 }
 
 function reject(ConfigurationLoader $loader, string $yaml, string $message): void
@@ -251,18 +272,34 @@ $testSource = static function (string $root): string {
 };
 
 $newTestRepository = static function (bool $failUpsert = false): \Iigau\StableDiffusionCheckpointLinker\Record\LinkRecordRepository {
-    return new class($failUpsert) implements \Iigau\StableDiffusionCheckpointLinker\Record\LinkRecordRepository {
+    return new class ($failUpsert) implements \Iigau\StableDiffusionCheckpointLinker\Record\LinkRecordRepository {
         private array $records = [];
-        public function __construct(private bool $failUpsert) {}
-        public function hasRecord(string $target): bool { return isset($this->records[$target]); }
-        public function getSource(string $target): ?string { return $this->records[$target] ?? null; }
+        public function __construct(private bool $failUpsert)
+        {
+        }
+        public function hasRecord(string $target): bool
+        {
+            return isset($this->records[$target]);
+        }
+        public function getSource(string $target): ?string
+        {
+            return $this->records[$target] ?? null;
+        }
         public function upsert(string $source, string $target): void
         {
-            if ($this->failUpsert) { throw new RuntimeException('injected DB upsert failure'); }
+            if ($this->failUpsert) {
+                throw new RuntimeException('injected DB upsert failure');
+            }
             $this->records[$target] = $source;
         }
-        public function deleteRecord(string $target): bool { unset($this->records[$target]); return true; }
-        public function activateForWrites(): void {}
+        public function deleteRecord(string $target): bool
+        {
+            unset($this->records[$target]);
+            return true;
+        }
+        public function activateForWrites(): void
+        {
+        }
     };
 };
 
@@ -270,16 +307,27 @@ test('executor stops after a failure and reports unexecuted operations', functio
     $root = testRoot('fail-fast');
     try {
         $source = $testSource($root);
-        $linker = new class implements \Iigau\StableDiffusionCheckpointLinker\Link\LinkerInterface {
+        $linker = new class () implements \Iigau\StableDiffusionCheckpointLinker\Link\LinkerInterface {
             private \Iigau\StableDiffusionCheckpointLinker\Link\Linker $actual;
-            public function __construct() { $this->actual = new \Iigau\StableDiffusionCheckpointLinker\Link\Linker(); }
-            public function inspect(string $path): \Iigau\StableDiffusionCheckpointLinker\Link\FilesystemEntry { return $this->actual->inspect($path); }
+            public function __construct()
+            {
+                $this->actual = new \Iigau\StableDiffusionCheckpointLinker\Link\Linker();
+            }
+            public function inspect(string $path): \Iigau\StableDiffusionCheckpointLinker\Link\FilesystemEntry
+            {
+                return $this->actual->inspect($path);
+            }
             public function createLink(string $source, string $target): void
             {
-                if (str_ends_with($target, 'two.bin')) { throw new RuntimeException('injected link failure'); }
+                if (str_ends_with($target, 'two.bin')) {
+                    throw new RuntimeException('injected link failure');
+                }
                 $this->actual->createLink($source, $target);
             }
-            public function removeLink(string $target): void { $this->actual->removeLink($target); }
+            public function removeLink(string $target): void
+            {
+                $this->actual->removeLink($target);
+            }
         };
         $plan = new \Iigau\StableDiffusionCheckpointLinker\Sync\OperationPlan();
         $plan->add(plannedLinkForTest($source, $root . '/target/one.bin', $root . '/target'));
@@ -372,5 +420,5 @@ test('destination parent file is rejected before database initialization', funct
 
 require __DIR__ . '/safety.php';
 
-echo "$passed passed, $failed failed\n";
-exit($failed === 0 ? 0 : 1);
+$testRunner->report();
+exit($testRunner->exitCode());

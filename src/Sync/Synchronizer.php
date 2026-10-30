@@ -11,7 +11,8 @@ final class Synchronizer
     public function __construct(
         private OperationPlan $plan,
         private OperationExecutor $executor
-    ) {}
+    ) {
+    }
 
     public function run(): SynchronizerResult
     {

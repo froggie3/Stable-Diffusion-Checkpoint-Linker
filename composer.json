@@ -13,7 +13,27 @@
         "ext-pdo_sqlite": "*",
         "symfony/yaml": "^6.4"
     },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "phpstan/phpstan": "^2.0"
+    },
     "scripts": {
-        "test": "@php tests/run.php"
+        "test": "@php tests/run.php",
+        "lint": [
+            "@php scripts/lint.php",
+            "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --no-progress"
+        ],
+        "format": "@php vendor/bin/php-cs-fixer fix --sequential --config=.php-cs-fixer.dist.php",
+        "format:check": "@php vendor/bin/php-cs-fixer fix --sequential --dry-run --diff --config=.php-cs-fixer.dist.php",
+        "check": [
+            "@lint",
+            "@format:check",
+            "@test"
+        ]
+    },
+    "config": {
+        "platform": {
+            "php": "8.1.0"
+        }
     }
 }

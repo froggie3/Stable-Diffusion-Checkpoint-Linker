@@ -15,7 +15,9 @@ use Throwable;
 
 final class CliApplication
 {
-    public function __construct(private string $projectRoot) {}
+    public function __construct(private string $projectRoot)
+    {
+    }
 
     public function run(string $mode, array $arguments): int
     {

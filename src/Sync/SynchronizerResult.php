@@ -15,7 +15,8 @@ final class SynchronizerResult
         public readonly ?string $errorMessage,
         public readonly array $partialEffects,
         public readonly array $unexecutedOperations
-    ) {}
+    ) {
+    }
 
     public function isSuccessful(): bool
     {

@@ -16,7 +16,8 @@ final class OperationExecutor
         private LinkerInterface $linker,
         private LinkRecordRepository $records,
         private PathIdentity $paths
-    ) {}
+    ) {
+    }
 
     public function execute(PlannedOperation $operation): array
     {

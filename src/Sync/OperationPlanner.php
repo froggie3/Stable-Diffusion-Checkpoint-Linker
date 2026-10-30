@@ -17,7 +17,8 @@ final class OperationPlanner
         private LinkerInterface $linker,
         private LinkRecordRepository $records,
         private PathIdentity $paths
-    ) {}
+    ) {
+    }
 
     public function planSync(): OperationPlan
     {

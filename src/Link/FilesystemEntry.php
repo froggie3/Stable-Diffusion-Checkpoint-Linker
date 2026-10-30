@@ -9,7 +9,8 @@ final class FilesystemEntry
     public function __construct(
         public readonly string $kind,
         public readonly ?string $linkTarget = null
-    ) {}
+    ) {
+    }
 
     public function exists(): bool
     {

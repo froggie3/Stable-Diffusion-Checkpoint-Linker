@@ -12,7 +12,8 @@ final class PlannedOperation
         public readonly string $target,
         public readonly string $action,
         public readonly array $snapshot
-    ) {}
+    ) {
+    }
 
     public function description(): string
     {
