@@ -21,6 +21,24 @@ The first successful operation creates the management database at
 `data/links.sqlite` when needed. Keep this file: it records which links SD-Linker
 manages. The `data/` directory is ignored by Git.
 
+## Agent skill
+
+The `modelop` skill provides instructions for using SD-Linker from an agent. Install it with [npx skills](https://skills.sh/):
+
+```bash
+npx skills add froggie3/Stable-Diffusion-Checkpoint-Linker --skill modelop
+```
+
+The interactive command lets you choose the installation target. To install it into a Codex project explicitly, use:
+
+```bash
+npx skills add froggie3/Stable-Diffusion-Checkpoint-Linker --skill modelop --agent codex
+```
+
+Add `-g` for a global installation, for example `npx skills add froggie3/Stable-Diffusion-Checkpoint-Linker --skill modelop -g`. Use `--list` to inspect the skills published by this repository; from a local checkout, validate discovery with `npx skills add . --list`.
+
+This installs skill instructions only. It does not install SD-Linker, PHP, or Composer; set up the project separately using the [Install](#install) instructions above. The current `npx skills` CLI requires Node.js 22.20 or later.
+
 ## Configure and run
 
 Copy `config/example.yaml`, then edit the copy for your model and destination
