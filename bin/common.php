@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 require __DIR__ . '/../vendor/autoload.php';
 
-use Iigau\StableDiffusionCheckpointLinker\Linker;
-use Iigau\StableDiffusionCheckpointLinker\Unlinker;
-use Iigau\StableDiffusionCheckpointLinker\Operations;
-use Iigau\StableDiffusionCheckpointLinker\Counter;
-use Iigau\StableDiffusionCheckpointLinker\SQLiteRecordRepository;
+use Iigau\StableDiffusionCheckpointLinker\Link\Linker;
+use Iigau\StableDiffusionCheckpointLinker\Link\Unlinker;
+use Iigau\StableDiffusionCheckpointLinker\Sync\Operations;
+use Iigau\StableDiffusionCheckpointLinker\Sync\Counter;
+use Iigau\StableDiffusionCheckpointLinker\Record\SQLiteRecordRepository;
 use Iigau\StableDiffusionCheckpointLinker\Config\ConfigurationLoader;
 use Monolog\Handler\StreamHandler;
 use Monolog\Level;
