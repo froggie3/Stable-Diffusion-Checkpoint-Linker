@@ -4,11 +4,6 @@
 declare(strict_types=1);
 
 require __DIR__ . '/../vendor/autoload.php';
-require __DIR__ . '/common.php';
+use Iigau\StableDiffusionCheckpointLinker\Console\CliApplication;
 
-use Iigau\StableDiffusionCheckpointLinker\Sync\Syncronizer;
-
-$procedures = $operations->clear();
-$syncronizer = new Syncronizer($logger, $procedures, $linker, $unlinker, $counter);
-$result = $syncronizer->run();
-$result->print();
+exit((new CliApplication(dirname(__DIR__)))->run('clear', array_slice($argv, 1)));

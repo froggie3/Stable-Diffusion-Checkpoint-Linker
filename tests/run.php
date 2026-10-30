@@ -202,7 +202,7 @@ try {
         test("$command accepts valid configuration with an isolated DB", function () use ($root, $command, $valid): void {
             [$status, $stdout, $stderr] = runCommand($root, $command, $valid);
             check($status === 0, "Exit $status: $stderr");
-            check(str_contains($stdout, 'newly linked'), 'Result summary missing.');
+            check(str_contains($stdout, 'Operations completed:'), 'Success summary missing.');
             $db = new PDO('sqlite:' . $root . '/data/links.sqlite');
             check((int) $db->query('SELECT COUNT(*) FROM links')->fetchColumn() === 0, 'Unexpected link records.');
         });
@@ -210,6 +210,167 @@ try {
 } finally {
     removeTemporaryDirectory($root);
 }
+
+function plannedLinkForTest(string $source, string $target, string $root, string $action = 'create'): \Iigau\StableDiffusionCheckpointLinker\Sync\PlannedOperation
+{
+    $parent = realpath(dirname($target));
+    $stat = $parent === false ? false : stat(dirname($target));
+    return new \Iigau\StableDiffusionCheckpointLinker\Sync\PlannedOperation(
+        'link',
+        $source,
+        $target,
+        $action,
+        [
+            'kind' => 'absent',
+            'linkTarget' => null,
+            'recordSource' => null,
+            'parent' => [
+                'canonical' => $parent === false ? null : $parent,
+                'device' => $stat === false ? null : $stat['dev'],
+                'inode' => $stat === false ? null : $stat['ino'],
+                'isDirectory' => $parent !== false && is_dir(dirname($target)),
+            ],
+            'rootCanonical' => realpath($root) ?: null,
+            'rootPath' => $root,
+        ]
+    );
+}
+
+function testRoot(string $label): string
+{
+    $root = sys_get_temp_dir() . "/linker-$label-" . bin2hex(random_bytes(8));
+    mkdir($root . '/source', 0700, true);
+    mkdir($root . '/target', 0700, true);
+    return $root;
+}
+
+$testSource = static function (string $root): string {
+    $path = $root . '/source/model.bin';
+    file_put_contents($path, 'model');
+    return $path;
+};
+
+$newTestRepository = static function (bool $failUpsert = false): \Iigau\StableDiffusionCheckpointLinker\Record\LinkRecordRepository {
+    return new class($failUpsert) implements \Iigau\StableDiffusionCheckpointLinker\Record\LinkRecordRepository {
+        private array $records = [];
+        public function __construct(private bool $failUpsert) {}
+        public function hasRecord(string $target): bool { return isset($this->records[$target]); }
+        public function getSource(string $target): ?string { return $this->records[$target] ?? null; }
+        public function upsert(string $source, string $target): void
+        {
+            if ($this->failUpsert) { throw new RuntimeException('injected DB upsert failure'); }
+            $this->records[$target] = $source;
+        }
+        public function deleteRecord(string $target): bool { unset($this->records[$target]); return true; }
+        public function activateForWrites(): void {}
+    };
+};
+
+test('executor stops after a failure and reports unexecuted operations', function () use ($testSource, $newTestRepository): void {
+    $root = testRoot('fail-fast');
+    try {
+        $source = $testSource($root);
+        $linker = new class implements \Iigau\StableDiffusionCheckpointLinker\Link\LinkerInterface {
+            private \Iigau\StableDiffusionCheckpointLinker\Link\Linker $actual;
+            public function __construct() { $this->actual = new \Iigau\StableDiffusionCheckpointLinker\Link\Linker(); }
+            public function inspect(string $path): \Iigau\StableDiffusionCheckpointLinker\Link\FilesystemEntry { return $this->actual->inspect($path); }
+            public function createLink(string $source, string $target): void
+            {
+                if (str_ends_with($target, 'two.bin')) { throw new RuntimeException('injected link failure'); }
+                $this->actual->createLink($source, $target);
+            }
+            public function removeLink(string $target): void { $this->actual->removeLink($target); }
+        };
+        $plan = new \Iigau\StableDiffusionCheckpointLinker\Sync\OperationPlan();
+        $plan->add(plannedLinkForTest($source, $root . '/target/one.bin', $root . '/target'));
+        $plan->add(plannedLinkForTest($source, $root . '/target/two.bin', $root . '/target'));
+        $plan->add(plannedLinkForTest($source, $root . '/target/three.bin', $root . '/target'));
+        $executor = new \Iigau\StableDiffusionCheckpointLinker\Sync\OperationExecutor($linker, $newTestRepository(), new \Iigau\StableDiffusionCheckpointLinker\Link\PathIdentity());
+        $result = (new \Iigau\StableDiffusionCheckpointLinker\Sync\Synchronizer($plan, $executor))->run();
+        check($result->completedCount === 1, 'First successful operation was not retained.');
+        check(count($result->completedOperations) === 1 && str_contains($result->completedOperations[0], 'one.bin'), 'Completed target was not reported.');
+        check($result->failedOperation !== null && str_contains($result->failedOperation, 'two.bin'), 'Failed target was not reported.');
+        check(count($result->unexecutedOperations) === 1 && str_contains($result->unexecutedOperations[0], 'three.bin'), 'Unexecuted target was not reported.');
+        check(is_link($root . '/target/one.bin') && readlink($root . '/target/one.bin') === $source, 'First operation effect was not preserved.');
+        check(!file_exists($root . '/target/two.bin') && !file_exists($root . '/target/three.bin'), 'Fail-fast executed an operation after failure.');
+    } finally {
+        removeTemporaryDirectory($root);
+    }
+});
+
+test('database failure reports a link already created as a partial effect', function () use ($testSource, $newTestRepository): void {
+    $root = testRoot('db-failure');
+    try {
+        $source = $testSource($root);
+        $plan = new \Iigau\StableDiffusionCheckpointLinker\Sync\OperationPlan();
+        $plan->add(plannedLinkForTest($source, $root . '/target/model.bin', $root . '/target'));
+        $executor = new \Iigau\StableDiffusionCheckpointLinker\Sync\OperationExecutor(new \Iigau\StableDiffusionCheckpointLinker\Link\Linker(), $newTestRepository(true), new \Iigau\StableDiffusionCheckpointLinker\Link\PathIdentity());
+        $result = (new \Iigau\StableDiffusionCheckpointLinker\Sync\Synchronizer($plan, $executor))->run();
+        check($result->failedOperation !== null, 'Injected database failure was not reported.');
+        check(is_link($root . '/target/model.bin'), 'Created link was incorrectly rolled back or missing.');
+        check(in_array('created link', $result->partialEffects, true), 'Partial filesystem effect was not reported.');
+    } finally {
+        removeTemporaryDirectory($root);
+    }
+});
+
+test('executor detects target state changes after planning', function () use ($testSource, $newTestRepository): void {
+    $root = testRoot('changed-state');
+    try {
+        $source = $testSource($root);
+        $target = $root . '/target/model.bin';
+        $plan = new \Iigau\StableDiffusionCheckpointLinker\Sync\OperationPlan();
+        $plan->add(plannedLinkForTest($source, $target, $root . '/target'));
+        file_put_contents($target, 'external');
+        $executor = new \Iigau\StableDiffusionCheckpointLinker\Sync\OperationExecutor(new \Iigau\StableDiffusionCheckpointLinker\Link\Linker(), $newTestRepository(), new \Iigau\StableDiffusionCheckpointLinker\Link\PathIdentity());
+        $result = (new \Iigau\StableDiffusionCheckpointLinker\Sync\Synchronizer($plan, $executor))->run();
+        check($result->failedOperation !== null, 'Target race was not detected.');
+        check(file_get_contents($target) === 'external', 'Changed target was modified.');
+    } finally {
+        removeTemporaryDirectory($root);
+    }
+});
+
+test('executor rechecks link source immediately before mutation', function () use ($testSource, $newTestRepository): void {
+    $root = testRoot('missing-source-race');
+    try {
+        $source = $testSource($root);
+        $target = $root . '/target/model.bin';
+        $plan = new \Iigau\StableDiffusionCheckpointLinker\Sync\OperationPlan();
+        $plan->add(plannedLinkForTest($source, $target, $root . '/target'));
+        unlink($source);
+        $executor = new \Iigau\StableDiffusionCheckpointLinker\Sync\OperationExecutor(new \Iigau\StableDiffusionCheckpointLinker\Link\Linker(), $newTestRepository(), new \Iigau\StableDiffusionCheckpointLinker\Link\PathIdentity());
+        $result = (new \Iigau\StableDiffusionCheckpointLinker\Sync\Synchronizer($plan, $executor))->run();
+        check($result->failedOperation !== null, 'Missing source race was not detected.');
+        check(!is_link($target), 'A dangling link was created.');
+    } finally {
+        removeTemporaryDirectory($root);
+    }
+});
+
+test('destination parent file is rejected before database initialization', function (): void {
+    $root = sys_get_temp_dir() . '/linker-parent-file-' . bin2hex(random_bytes(8));
+    mkdir($root . '/bin', 0700, true);
+    mkdir($root . '/source', 0700, true);
+    symlink(realpath(__DIR__ . '/../vendor'), $root . '/vendor');
+    foreach (['sync', 'clear', 'common.php'] as $file) {
+        copy(__DIR__ . '/../bin/' . $file, "$root/bin/$file");
+    }
+    file_put_contents($root . '/source/model.bin', 'model');
+    file_put_contents($root . '/destination-file', 'keep');
+    $yaml = "lookupKeys: [models]\nsource:\n  models:\n    - meta: {enabled: true}\n      baseDirectory: $root/source\n      weightsList: [model.bin]\ndestination: {models: $root/destination-file}\n";
+    try {
+        [$status, , $stderr] = runCommand($root, 'sync', $yaml);
+        check($status === 1, 'Expected preflight exit 1 for a regular-file destination parent.');
+        check(str_contains($stderr, 'Preflight error:'), 'Missing preflight diagnostic.');
+        check(!file_exists($root . '/data/links.sqlite'), 'Preflight created a database.');
+        check(file_get_contents($root . '/destination-file') === 'keep', 'Destination file was modified.');
+    } finally {
+        removeTemporaryDirectory($root);
+    }
+});
+
+require __DIR__ . '/safety.php';
 
 echo "$passed passed, $failed failed\n";
 exit($failed === 0 ? 0 : 1);

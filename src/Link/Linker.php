@@ -4,63 +4,46 @@ declare(strict_types=1);
 
 namespace Iigau\StableDiffusionCheckpointLinker\Link;
 
-use Iigau\StableDiffusionCheckpointLinker\Record\LinkRecordRepository;
-use Iigau\StableDiffusionCheckpointLinker\Record\RecordResult;
-use Iigau\StableDiffusionCheckpointLinker\Sync\State\SyncObjectStatus;
-
-use Monolog\Logger;
+use RuntimeException;
 
 final class Linker implements LinkerInterface
 {
-    public function __construct(
-	protected Logger $logger,
-	protected LinkRecordRepository $repository
-    ) {}
-
-    public function createRecord(string $source, string $target): RecordResult
+    public function inspect(string $path): FilesystemEntry
     {
-        try {
-            if (!$this->repository->createRecord($source, $target)) {
-                return RecordResult::RECORD_CREATION_ERROR;
-            }
-        } catch (\Throwable $e) {
-            $this->logger->error('Record creation error: ' . $e->getMessage());
-            return RecordResult::RECORD_CREATION_ERROR;
+        clearstatcache(true, $path);
+        if (is_link($path)) {
+            $target = readlink($path);
+            return new FilesystemEntry('symlink', $target === false ? null : $target);
         }
-
-        return RecordResult::NEWLY_LINKED;
+        if (is_file($path)) {
+            return new FilesystemEntry('file');
+        }
+        if (is_dir($path)) {
+            return new FilesystemEntry('directory');
+        }
+        if (file_exists($path)) {
+            return new FilesystemEntry('other');
+        }
+        return new FilesystemEntry('absent');
     }
 
-    public function link(string $source, string $target): LinkResult
+    public function createLink(string $source, string $target): void
     {
+        if (!is_file($source)) {
+            throw new RuntimeException("Link source is missing or not a file: $source");
+        }
         if (!@symlink($source, $target)) {
-            return LinkResult::SYMLINK_ERROR;
+            throw new RuntimeException("Could not create symlink: $target");
         }
-
-        return LinkResult::ACCEPT;
     }
 
-    public function test(string $source, string $target): SyncObjectStatus
+    public function removeLink(string $target): void
     {
-        if (!file_exists($source)) {
-            return SyncObjectStatus::SOURCE_NOT_FOUND;
+        if (!is_link($target)) {
+            throw new RuntimeException("Refusing to remove a non-symlink filesystem entry: $target");
         }
-
-        $targetExists = file_exists($target);
-        $recordExists = $this->repository->hasRecord($target);
-
-        if ($targetExists && $recordExists) {
-            return SyncObjectStatus::ALREADY_LINKED;
+        if (!@unlink($target)) {
+            throw new RuntimeException("Could not remove filesystem entry: $target");
         }
-
-        if ($targetExists && ! $recordExists) {
-            return SyncObjectStatus::TARGET_ALREADY_EXISTS_WITHOUT_RECORD;
-        }
-
-        if (! $targetExists && $recordExists) {
-            return SyncObjectStatus::RECORD_EXISTS_WITHOUT_LINK;
-        }
-
-        return SyncObjectStatus::READY;
     }
 }

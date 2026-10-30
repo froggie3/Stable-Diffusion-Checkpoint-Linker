@@ -48,12 +48,65 @@ final class ConfigurationLoader
                 throw new InvalidArgumentException("source.$key must be a list of model groups (an empty list is allowed).");
             }
 
+            foreach ($config['source'][$key] as $index => $group) {
+                $this->validateGroup($key, $index, $group);
+            }
+
             $destination = $config['destination'][$key] ?? null;
-            if (!is_string($destination) || trim($destination) === '') {
-                throw new InvalidArgumentException("destination.$key must be a non-empty path string.");
+            if (!$this->isSafeAbsolutePath($destination)) {
+                throw new InvalidArgumentException("destination.$key must be a safe absolute path.");
             }
         }
 
         return $config;
+    }
+
+    private function validateGroup(string $category, int $index, mixed $group): void
+    {
+        $path = "source.$category.$index";
+        if (!is_array($group) || array_is_list($group)) {
+            throw new InvalidArgumentException("$path must be a mapping.");
+        }
+
+        $meta = $group['meta'] ?? null;
+        if (!is_array($meta) || !array_key_exists('enabled', $meta) || !is_bool($meta['enabled'])) {
+            throw new InvalidArgumentException("$path.meta.enabled must be a boolean.");
+        }
+
+        if (!isset($group['baseDirectory']) || !$this->isSafeAbsolutePath($group['baseDirectory'])) {
+            throw new InvalidArgumentException("$path.baseDirectory must be a safe absolute path.");
+        }
+
+        $this->validateStringList($group['weightsList'] ?? null, "$path.weightsList", true);
+        if (array_key_exists('ignoreList', $group)) {
+            $this->validateStringList($group['ignoreList'], "$path.ignoreList", true);
+        }
+    }
+
+    private function validateStringList(mixed $value, string $path, bool $relativePaths = false): void
+    {
+        if (!is_array($value) || !array_is_list($value)) {
+            throw new InvalidArgumentException("$path must be a list of strings.");
+        }
+        foreach ($value as $index => $item) {
+            if (!is_string($item) || trim($item) === '') {
+                throw new InvalidArgumentException("$path.$index must be a non-empty string.");
+            }
+            if (str_contains($item, "\0")) {
+                throw new InvalidArgumentException("$path.$index must not contain a NUL byte.");
+            }
+            if ($relativePaths && (str_starts_with($item, '/') || array_intersect(explode('/', $item), ['', '.', '..']) !== [])) {
+                throw new InvalidArgumentException("$path.$index must be a safe relative path without empty, dot, or '..' components.");
+            }
+        }
+    }
+
+    private function isSafeAbsolutePath(mixed $value): bool
+    {
+        return is_string($value)
+            && trim($value) !== ''
+            && str_starts_with($value, '/')
+            && !str_contains($value, "\0")
+            && !in_array('..', explode('/', $value), true);
     }
 }
