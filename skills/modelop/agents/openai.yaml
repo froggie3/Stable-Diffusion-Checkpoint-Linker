@@ -1,0 +1,3 @@
+interface:
+  display_name: "modelop"
+  short_description: "Manage model symlinks with SD-Linker sync and clear"
