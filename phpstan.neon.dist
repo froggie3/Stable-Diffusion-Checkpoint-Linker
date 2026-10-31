@@ -7,4 +7,4 @@ parameters:
         - tests
         - scripts
         - .php-cs-fixer.dist.php
-        - linker
+        - bin/linker

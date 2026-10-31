@@ -13,8 +13,9 @@ function safetyScenario(callable $callback): void
     $root = sys_get_temp_dir() . '/linker-safety-' . bin2hex(random_bytes(8));
     mkdir($root, 0700, true);
     symlink(realpath(__DIR__ . '/../vendor'), $root . '/vendor');
-    copy(__DIR__ . '/../linker', "$root/linker");
-    chmod("$root/linker", 0700);
+    mkdir($root . '/bin', 0700);
+    copy(__DIR__ . '/../bin/linker', "$root/bin/linker");
+    chmod("$root/bin/linker", 0700);
     try {
         $callback($root);
     } finally {
@@ -42,7 +43,7 @@ function safetyRemoveTree(string $path): void
 function safetyRunCli(string $root, string $command, array $arguments = [], ?string $yaml = null): array
 {
     $process = proc_open(
-        ["$root/linker", $command, ...$arguments],
+        ["$root/bin/linker", $command, ...$arguments],
         [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
         $pipes,
         $root

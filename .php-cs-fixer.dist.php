@@ -12,7 +12,7 @@ $finder = Finder::create()
     ->in(__DIR__ . '/tests')
     ->in(__DIR__ . '/config')
     ->in(__DIR__ . '/scripts')
-    ->append([__DIR__ . '/linker', __FILE__])
+    ->append([__DIR__ . '/bin/linker', __FILE__])
     ->exclude(['vendor', 'data', '.cache']);
 
 return (new Config())

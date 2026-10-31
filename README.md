@@ -45,8 +45,8 @@ Copy `config/example.yaml`, then edit the copy for your model and destination
 directories. The programs read YAML from standard input:
 
 ```bash
-./linker sync < /path/to/config.yaml
-./linker clear < /path/to/config.yaml
+./bin/linker sync < /path/to/config.yaml
+./bin/linker clear < /path/to/config.yaml
 ```
 
 `sync` creates or updates the selected links. `clear` removes links that the
@@ -60,15 +60,15 @@ successful-operation details. The repeatable
 in that configuration's `lookupKeys` list. For example:
 
 ```bash
-./linker sync --dry-run --category checkpoint < /path/to/config.yaml
-./linker clear --category checkpoint --category lora < /path/to/config.yaml
+./bin/linker sync --dry-run --category checkpoint < /path/to/config.yaml
+./bin/linker clear --category checkpoint --category lora < /path/to/config.yaml
 ```
 
 A category outside `lookupKeys` is an error. `--dry-run` performs configuration
 and operation checks and reports the planned work without changing links or the
 management database.
 
-Run `./linker --help` for the command list, or `./linker <command> --help` for
+Run `./bin/linker --help` for the command list, or `./bin/linker <command> --help` for
 the full command reference.
 
 ## Configuration and command reference
@@ -81,7 +81,7 @@ literal: `~`, environment variables, and glob patterns are not expanded.
 destination; entries containing `..` are rejected. Quote paths and filenames
 when YAML could interpret them as another type.
 
-See `./linker sync --help` or `./linker clear --help` for the full key schema,
+See `./bin/linker sync --help` or `./bin/linker clear --help` for the full key schema,
 defaults, selection behavior, safety rules, output streams, and exit codes.
 Help prints without reading standard input or opening the database.
 

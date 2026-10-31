@@ -180,13 +180,13 @@ final class CliApplication
     {
         $output = new ConsoleOutput();
         foreach ([
-            'Usage: ./linker <command> [OPTIONS] < config.yaml',
+            'Usage: ./bin/linker <command> [OPTIONS] < config.yaml',
             '',
             'Commands:',
             '  sync     ' . Command::SYNC->description(),
             '  clear    ' . Command::CLEAR->description(),
             '',
-            'Run ./linker <command> --help for configuration, options, safety, and output details.',
+            'Run ./bin/linker <command> --help for configuration, options, safety, and output details.',
             'Configuration is read from standard input. Help does not read stdin or open the database.',
         ] as $line) {
             $output->line($line);
@@ -200,7 +200,7 @@ final class CliApplication
             ? 'Remove only links that the management database confirms are managed and that this configuration lists.'
             : 'Create, repair, replace, register, or remove the links selected by this configuration.';
         $lines = [
-            "Usage: ./linker {$command->value} [OPTIONS] < config.yaml",
+            "Usage: ./bin/linker {$command->value} [OPTIONS] < config.yaml",
             '',
             $modeAction,
             'Configuration is read from standard input. --help does not read stdin or open the database.',
@@ -212,9 +212,9 @@ final class CliApplication
             '  --category NAME            limit to a lookupKeys category (repeatable; --category=NAME is also accepted).',
             '',
             'Examples:',
-            "  ./linker {$command->value} --help",
-            "  ./linker {$command->value} --dry-run < config.yaml",
-            "  ./linker {$command->value} -v --category checkpoint < config.yaml",
+            "  ./bin/linker {$command->value} --help",
+            "  ./bin/linker {$command->value} --dry-run < config.yaml",
+            "  ./bin/linker {$command->value} -v --category checkpoint < config.yaml",
             '',
             'Minimal YAML configuration:',
             '  lookupKeys: [checkpoint]',
