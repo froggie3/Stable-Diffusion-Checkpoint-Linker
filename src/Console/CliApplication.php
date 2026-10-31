@@ -69,9 +69,12 @@ final class CliApplication
         }
 
         try {
-            $input = file_get_contents('php://stdin');
+            $input = $options->configFile === null
+                ? file_get_contents('php://stdin')
+                : @file_get_contents($options->configFile);
             if ($input === false) {
-                throw new \InvalidArgumentException('failed to read configuration from stdin.');
+                $source = $options->configFile === null ? 'stdin' : $options->configFile;
+                throw new \InvalidArgumentException("failed to read configuration from $source.");
             }
             $config = (new ConfigurationLoader())->load($input);
         } catch (\InvalidArgumentException $e) {
@@ -147,8 +150,24 @@ final class CliApplication
         $dryRun = false;
         $verbose = false;
         $categories = null;
+        $configFile = null;
+        $endOfOptions = false;
         for ($i = 0; $i < count($arguments); ++$i) {
             $argument = $arguments[$i];
+            if ($endOfOptions || $argument === '--' || !str_starts_with($argument, '-')) {
+                if ($argument === '--' && !$endOfOptions) {
+                    $endOfOptions = true;
+                    continue;
+                }
+                if ($configFile !== null) {
+                    return new CliOptions(error: "unexpected positional argument: $argument");
+                }
+                if ($argument === '') {
+                    return new CliOptions(error: 'configuration file path must not be empty');
+                }
+                $configFile = $argument;
+                continue;
+            }
             if ($argument === '--help' || $argument === '-h') {
                 $help = true;
             } elseif ($argument === '--dry-run') {
@@ -173,21 +192,21 @@ final class CliApplication
                 return new CliOptions(error: "unknown option: $argument");
             }
         }
-        return new CliOptions($help, $dryRun, $verbose, $categories);
+        return new CliOptions($help, $dryRun, $verbose, $categories, configFile: $configFile);
     }
 
     private function printGlobalHelp(): void
     {
         $output = new ConsoleOutput();
         foreach ([
-            'Usage: ./bin/linker <command> [OPTIONS] < config.yaml',
+            'Usage: ./bin/linker <command> [OPTIONS] [CONFIG]',
             '',
             'Commands:',
             '  sync     ' . Command::SYNC->description(),
             '  clear    ' . Command::CLEAR->description(),
             '',
             'Run ./bin/linker <command> --help for configuration, options, safety, and output details.',
-            'Configuration is read from standard input. Help does not read stdin or open the database.',
+            'Configuration is read from CONFIG when provided, otherwise from standard input (< config.yaml). Help does not read input or open the database.',
         ] as $line) {
             $output->line($line);
         }
@@ -200,10 +219,10 @@ final class CliApplication
             ? 'Remove only links that the management database confirms are managed and that this configuration lists.'
             : 'Create, repair, replace, register, or remove the links selected by this configuration.';
         $lines = [
-            "Usage: ./bin/linker {$command->value} [OPTIONS] < config.yaml",
+            "Usage: ./bin/linker {$command->value} [OPTIONS] [CONFIG]",
             '',
             $modeAction,
-            'Configuration is read from standard input. --help does not read stdin or open the database.',
+            'Configuration is read from CONFIG when provided, otherwise from standard input (< config.yaml). --help does not read input or open the database.',
             '',
             'Options:',
             '  -h, --help                 show this help.',

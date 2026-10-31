@@ -12,7 +12,8 @@ final class CliOptions
         public readonly bool $dryRun = false,
         public readonly bool $verbose = false,
         public readonly ?array $categories = null,
-        public readonly ?string $error = null
+        public readonly ?string $error = null,
+        public readonly ?string $configFile = null
     ) {
     }
 }

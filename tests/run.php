@@ -290,6 +290,53 @@ try {
         check(!file_exists($root . '/data'), 'Dry-run from another cwd initialized the database.');
     });
 
+    test('configuration file argument ignores stdin and allows options on either side', function () use ($root, $valid): void {
+        $config = $root . '/config.yaml';
+        file_put_contents($config, $valid);
+        [$status, $stdout, $stderr] = runCommand($root, 'sync', 'not: valid: yaml', ['--dry-run', $config, '--verbose']);
+        check($status === 0 && $stderr === '', "Config file execution failed: $stderr");
+        check(str_contains($stdout, 'dry run: no filesystem or database changes made.'), 'Config file did not supply input.');
+        check(!file_exists($root . '/data'), 'Config file dry-run initialized the database.');
+    });
+
+    test('clear configuration argument does not wait for stdin', function () use ($root, $valid): void {
+        $config = $root . '/clear-config.yaml';
+        file_put_contents($config, $valid);
+        [$status, $stdout, $stderr] = runCommandWithOpenStdin($root, ['clear', '--dry-run', $config]);
+        check($status === 0 && $stderr === '', "clear with CONFIG failed: $stderr");
+        check(str_contains($stdout, 'dry run: no filesystem or database changes made.'), 'clear did not use CONFIG.');
+        check(!file_exists($root . '/data'), 'clear config dry-run initialized the database.');
+    });
+
+    test('-- permits a configuration file whose name begins with a dash', function () use ($root, $valid): void {
+        file_put_contents($root . '/-config.yaml', $valid);
+        [$status, $stdout, $stderr] = runCommand($root, 'sync', 'ignored stdin', ['--dry-run', '--', '-config.yaml']);
+        check($status === 0 && $stderr === '', "Dash-prefixed config failed: $stderr");
+        check(str_contains($stdout, 'dry run: no filesystem or database changes made.'), 'Dash-prefixed config was not read.');
+    });
+
+    test('extra configuration positional argument is rejected', function () use ($root, $valid): void {
+        $config = $root . '/config.yaml';
+        file_put_contents($config, $valid);
+        [$status, $stdout, $stderr] = runCommand($root, 'sync', '', [$config, 'extra.yaml']);
+        check($status === 2 && $stdout === '', 'Extra positional argument was accepted.');
+        check(str_contains($stderr, 'unexpected positional argument: extra.yaml'), 'Missing positional argument diagnostic.');
+    });
+
+    test('empty configuration positional argument is rejected', function () use ($root): void {
+        [$status, $stdout, $stderr] = runCommand($root, 'sync', '', ['']);
+        check($status === 2 && $stdout === '', 'Empty config path was not rejected as an argument error.');
+        check(str_contains($stderr, 'configuration file path must not be empty'), 'Missing empty config diagnostic.');
+    });
+
+    test('configuration file read failure is reported without PHP warning output', function () use ($root): void {
+        [$status, $stdout, $stderr] = runCommand($root, 'sync', '', [$root . '/missing.yaml']);
+        check($status === 1 && $stdout === '', 'Missing config file did not fail.');
+        check(str_contains($stderr, 'configuration error: failed to read configuration from '), 'Missing config did not use configuration diagnostic.');
+        check(!str_contains($stderr, 'Warning') && !str_contains($stderr, 'Fatal error'), 'PHP warning leaked to stderr.');
+        check(!file_exists($root . '/data'), 'Missing config initialized the database.');
+    });
+
     foreach (['sync', 'clear'] as $command) {
         test("$command rejects invalid configuration before DB initialization", function () use ($root, $command, $invalid): void {
             foreach ($invalid as $name => [$yaml, $message]) {

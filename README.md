@@ -49,6 +49,16 @@ directories. The programs read YAML from standard input:
 ./bin/linker clear < /path/to/config.yaml
 ```
 
+Alternatively, pass the configuration file as a positional argument. When a
+file is supplied, standard input is ignored; options can appear before or
+after the file. Use `--` before a file name that begins with `-`:
+
+```bash
+./bin/linker sync --dry-run /path/to/config.yaml
+./bin/linker clear /path/to/config.yaml --verbose
+./bin/linker sync -- -config.yaml
+```
+
 `sync` creates or updates the selected links. `clear` removes links that the
 management database confirms belong to SD-Linker and that are described by the
 selected configuration. It does not search for links omitted from the
