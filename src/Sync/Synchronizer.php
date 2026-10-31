@@ -16,7 +16,7 @@ final class Synchronizer
 
     public function run(): SynchronizerResult
     {
-        $counts = ['created' => 0, 'repaired' => 0, 'replaced' => 0, 'registered' => 0, 'removed' => 0, 'unchanged' => 0];
+        $counts = new OperationCounts();
         $completed = [];
         $failedOperation = null;
         $errorMessage = null;
@@ -27,15 +27,7 @@ final class Synchronizer
             try {
                 $this->executor->execute($operation);
                 $completed[] = $operation->description();
-                $key = match ($operation->action) {
-                    'create' => 'created',
-                    'repair' => 'repaired',
-                    'replace' => 'replaced',
-                    'register' => 'registered',
-                    'unlink', 'delete_record' => 'removed',
-                    default => 'unchanged',
-                };
-                ++$counts[$key];
+                $counts = $counts->increment($operation->action);
             } catch (Throwable $e) {
                 $failedOperation = $operation->description();
                 $errorMessage = $e->getMessage();

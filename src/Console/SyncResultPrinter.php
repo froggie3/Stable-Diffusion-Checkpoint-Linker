@@ -5,33 +5,56 @@ declare(strict_types=1);
 namespace Iigau\StableDiffusionCheckpointLinker\Console;
 
 use Iigau\StableDiffusionCheckpointLinker\Sync\SynchronizerResult;
+use Psr\Log\LoggerInterface;
 
 final class SyncResultPrinter
 {
-    public function print(SynchronizerResult $result): void
+    public function __construct(private LoggerInterface $logger)
     {
-        foreach ([
-            'Created links' => 'created',
-            'Repaired links' => 'repaired',
-            'Replaced links' => 'replaced',
-            'Registered links' => 'registered',
-            'Removed links or records' => 'removed',
-            'Unchanged targets' => 'unchanged',
-        ] as $label => $key) {
-            printf("%s: %d\n", $label, $result->counts[$key]);
+    }
+
+    public function print(SynchronizerResult $result, bool $verbose): void
+    {
+        $counts = $result->counts;
+        $summary = [
+            'created links' => $counts->created,
+            'repaired links' => $counts->repaired,
+            'replaced links' => $counts->replaced,
+            'registered links' => $counts->registered,
+            'removed links or records' => $counts->removed,
+            'unchanged targets' => $counts->unchanged,
+            'operations completed' => "{$result->completedCount}/{$result->operationCount}",
+        ];
+
+        if ($result->isSuccessful()) {
+            if ($verbose) {
+                foreach ($result->completedOperations as $operation) {
+                    $this->logger->info('completed: {operation}', ['operation' => $operation]);
+                }
+                foreach ($summary as $label => $value) {
+                    $this->logger->info('{label}: {value}', ['label' => $label, 'value' => $value]);
+                }
+            }
+            return;
         }
-        printf("Operations completed: %d/%d\n", $result->completedCount, $result->operationCount);
+
         foreach ($result->completedOperations as $operation) {
-            fwrite(STDOUT, "Completed: $operation\n");
+            $this->logger->error('completed: {operation}', ['operation' => $operation]);
         }
-        if ($result->failedOperation !== null) {
-            fwrite(STDERR, "Failed: {$result->failedOperation}: {$result->errorMessage}\n");
-            foreach ($result->partialEffects as $effect) {
-                fwrite(STDERR, "  Effect before failure: $effect\n");
-            }
-            foreach ($result->unexecutedOperations as $operation) {
-                fwrite(STDERR, "Not executed: $operation\n");
-            }
+        $this->logger->error('failed: {operation}: {message}', [
+            'operation' => $result->failedOperation,
+            'message' => $result->errorMessage,
+        ]);
+        foreach ($result->partialEffects as $effect) {
+            $this->logger->error('partial effect before failure: {effect}', ['effect' => $effect]);
         }
+        foreach ($result->unexecutedOperations as $operation) {
+            $this->logger->error('not executed: {operation}', ['operation' => $operation]);
+        }
+        $this->logger->error('operations completed: {completed}/{total}', [
+            'completed' => $result->completedCount,
+            'total' => $result->operationCount,
+        ]);
+        $this->logger->error('completed work is retained; inspect the filesystem and database before retrying.');
     }
 }

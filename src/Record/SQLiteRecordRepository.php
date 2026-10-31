@@ -67,14 +67,14 @@ SQL);
         }
         $directory = dirname($this->dbPath);
         if (!is_dir($directory) && !@mkdir($directory, 0775, true) && !is_dir($directory)) {
-            throw new RuntimeException("Could not create database directory: $directory");
+            throw new RuntimeException("could not create database directory: $directory");
         }
         $lock = @fopen($this->dbPath . '.lock', 'c');
         if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
             if (is_resource($lock)) {
                 fclose($lock);
             }
-            throw new RuntimeException('Another linker process is using this database.');
+            throw new RuntimeException('another linker process is using this database.');
         }
         $this->lockHandle = $lock;
 
@@ -92,7 +92,7 @@ SQL);
     private function writablePdo(): PDO
     {
         if ($this->lockHandle === null || $this->pdo === null) {
-            throw new RuntimeException('Database writes have not been activated.');
+            throw new RuntimeException('database writes have not been activated.');
         }
         return $this->pdo;
     }

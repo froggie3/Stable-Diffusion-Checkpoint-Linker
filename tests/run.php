@@ -74,7 +74,7 @@ $invalid = [
     'whitespace category' => ["lookupKeys: ['  ']\n" . $sections, 'non-empty strings'],
     'numeric category' => ["lookupKeys: [123]\n" . $sections, 'non-empty strings'],
     'boolean category' => ["lookupKeys: [false]\n" . $sections, 'non-empty strings'],
-    'duplicate category' => ["lookupKeys: [loras, loras]\n" . $sections, 'Duplicate category'],
+    'duplicate category' => ["lookupKeys: [loras, loras]\n" . $sections, 'duplicate category'],
     'unknown source category' => ["lookupKeys: [missing]\n" . $sections, 'source.missing'],
     'missing source' => ["lookupKeys: [loras]\ndestination: {loras: /tmp/models}\n", 'source'],
     'scalar source' => ["lookupKeys: [loras]\nsource: invalid\ndestination: {loras: /tmp/models}\n", 'source'],
@@ -87,9 +87,9 @@ $invalid = [
     'empty document' => ['', 'mapping'],
     'scalar document' => ['some-file.yaml', 'mapping'],
     'sequence document' => ['[one, two]', 'mapping'],
-    'malformed YAML' => ["lookupKeys: [loras\n", 'Invalid YAML'],
-    'duplicate YAML key' => ["lookupKeys: [loras]\nlookupKeys: [loras]\n" . $sections, 'Invalid YAML'],
-    'unsupported YAML tag' => ["lookupKeys: !php/object 'invalid'\n" . $sections, 'Invalid YAML'],
+    'malformed YAML' => ["lookupKeys: [loras\n", 'invalid YAML'],
+    'duplicate YAML key' => ["lookupKeys: [loras]\nlookupKeys: [loras]\n" . $sections, 'invalid YAML'],
+    'unsupported YAML tag' => ["lookupKeys: !php/object 'invalid'\n" . $sections, 'invalid YAML'],
 ];
 
 foreach ($invalid as $name => [$yaml, $message]) {
@@ -97,18 +97,18 @@ foreach ($invalid as $name => [$yaml, $message]) {
 }
 
 test('valid selection with empty model groups', function () use ($loader, $valid): void {
-    check($loader->load($valid)['lookupKeys'] === ['loras'], 'Selection changed.');
+    check($loader->load($valid)->lookupKeys === ['loras'], 'Selection changed.');
 });
 
 test('only selected categories need a destination', function () use ($loader, $valid): void {
     $yaml = str_replace("  loras: []\n", "  loras: []\n  unused: []\n", $valid);
     $config = $loader->load($yaml);
-    check($config['lookupKeys'] === ['loras'], 'Selection expanded.');
+    check($config->lookupKeys === ['loras'], 'Selection expanded.');
 });
 
 test('multiple categories preserve selection order', function () use ($loader): void {
     $config = $loader->load("lookupKeys: [vae, loras]\nsource: {loras: [], vae: []}\ndestination: {loras: /tmp/loras, vae: /tmp/vae}\n");
-    check($config['lookupKeys'] === ['vae', 'loras'], 'Selection order changed.');
+    check($config->lookupKeys === ['vae', 'loras'], 'Selection order changed.');
 });
 
 $modelGroup = <<<'YAML'
@@ -127,9 +127,9 @@ YAML;
 
 test('ordinary indentation and comments', function () use ($loader, $modelGroup): void {
     $config = $loader->load("# Models\nlookupKeys:\n  - loras\n" . $modelGroup);
-    $group = $config['source']['loras'][0];
-    check($group['meta']['enabled'] === false, 'Boolean changed.');
-    check($group['weightsList'] === ['001.safetensors', '2026-10-30'], 'Quoted strings changed.');
+    $group = $config->category('loras')->groups[0];
+    check($group->enabled === false, 'Boolean changed.');
+    check($group->weightsList === ['001.safetensors', '2026-10-30'], 'Quoted strings changed.');
 });
 
 test('indentless sequences preserve model groups and weights', function () use ($loader, $modelGroup): void {
@@ -149,7 +149,13 @@ source:
 destination:
   loras: /tmp/models
 YAML;
-    check($loader->load($indented) === $loader->load($indentless), 'Equivalent sequences parsed differently.');
+    $left = $loader->load($indented)->category('loras')->groups[0];
+    $right = $loader->load($indentless)->category('loras')->groups[0];
+    check(
+        $left->enabled === $right->enabled && $left->baseDirectory === $right->baseDirectory
+        && $left->weightsList === $right->weightsList && $left->ignoreList === $right->ignoreList,
+        'Equivalent sequences parsed differently.'
+    );
 });
 
 test('syntax error includes a line number', function () use ($loader): void {
@@ -158,19 +164,19 @@ test('syntax error includes a line number', function () use ($loader): void {
 
 test('distributed example loads', function () use ($loader): void {
     $config = $loader->load(file_get_contents(__DIR__ . '/../config/example.yaml'));
-    check(count($config['lookupKeys']) === 6, 'Example categories missing.');
-    check(count($config['source']['checkpoint']) === 3, 'Example groups missing.');
+    check(count($config->lookupKeys) === 6, 'Example categories missing.');
+    check(count($config->category('checkpoint')->groups) === 3, 'Example groups missing.');
 });
 
 test('README configuration example loads', function () use ($loader): void {
     $readme = file_get_contents(__DIR__ . '/../README.md');
     check(preg_match('/```yaml\R(.*?)```/s', $readme, $matches) === 1, 'README YAML missing.');
-    check($loader->load($matches[1])['lookupKeys'] === ['checkpoint'], 'README selection changed.');
+    check($loader->load($matches[1])->lookupKeys === ['checkpoint'], 'README selection changed.');
 });
 
-function runCommand(string $root, string $command, string $yaml): array
+function runCommand(string $root, string $command, string $yaml, array $arguments = []): array
 {
-    $process = proc_open([PHP_BINARY, "$root/bin/$command"], [
+    $process = proc_open([PHP_BINARY, "$root/bin/$command", ...$arguments], [
         0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w'],
     ], $pipes, $root);
     if (!is_resource($process)) {
@@ -211,7 +217,7 @@ try {
                 [$status, $stdout, $stderr] = runCommand($root, $command, $yaml);
                 check($status === 1, "$name: expected exit 1, received $status");
                 check($stdout === '', "$name: unexpected success output");
-                check(str_contains($stderr, 'Configuration error: '), "$name: missing configuration diagnostic");
+                check(str_contains($stderr, 'configuration error: '), "$name: missing configuration diagnostic");
                 check(!str_contains($stderr, 'Fatal error'), "$name: unexpected uncaught exception");
                 check(!file_exists($root . '/data'), "$name: created database directory");
             }
@@ -223,7 +229,7 @@ try {
         test("$command accepts valid configuration with an isolated DB", function () use ($root, $command, $valid): void {
             [$status, $stdout, $stderr] = runCommand($root, $command, $valid);
             check($status === 0, "Exit $status: $stderr");
-            check(str_contains($stdout, 'Operations completed:'), 'Success summary missing.');
+            check($stdout === '' && $stderr === '', 'Successful execution should be silent by default.');
             $db = new PDO('sqlite:' . $root . '/data/links.sqlite');
             check((int) $db->query('SELECT COUNT(*) FROM links')->fetchColumn() === 0, 'Unexpected link records.');
         });
@@ -237,23 +243,23 @@ function plannedLinkForTest(string $source, string $target, string $root, string
     $parent = realpath(dirname($target));
     $stat = $parent === false ? false : stat(dirname($target));
     return new \Iigau\StableDiffusionCheckpointLinker\Sync\PlannedOperation(
-        'link',
+        \Iigau\StableDiffusionCheckpointLinker\Sync\OperationType::LINK,
         $source,
         $target,
-        $action,
-        [
-            'kind' => 'absent',
-            'linkTarget' => null,
-            'recordSource' => null,
-            'parent' => [
-                'canonical' => $parent === false ? null : $parent,
-                'device' => $stat === false ? null : $stat['dev'],
-                'inode' => $stat === false ? null : $stat['ino'],
-                'isDirectory' => $parent !== false && is_dir(dirname($target)),
-            ],
-            'rootCanonical' => realpath($root) ?: null,
-            'rootPath' => $root,
-        ]
+        \Iigau\StableDiffusionCheckpointLinker\Sync\OperationAction::from($action),
+        new \Iigau\StableDiffusionCheckpointLinker\Sync\OperationSnapshot(
+            \Iigau\StableDiffusionCheckpointLinker\Link\FilesystemKind::ABSENT,
+            null,
+            null,
+            new \Iigau\StableDiffusionCheckpointLinker\Sync\DirectorySnapshot(
+                $parent === false ? null : $parent,
+                $stat === false ? null : $stat['dev'],
+                $stat === false ? null : $stat['ino'],
+                $parent !== false && is_dir(dirname($target))
+            ),
+            realpath($root) ?: null,
+            $root
+        )
     );
 }
 
@@ -396,6 +402,35 @@ test('executor rechecks link source immediately before mutation', function () us
     }
 });
 
+test('failure printer reports completed work, partial effects, failed path, and pending work to error stream', function (): void {
+    $stream = fopen('php://memory', 'r+');
+    $handler = new Monolog\Handler\StreamHandler($stream, Monolog\Level::Error);
+    $handler->setFormatter(new Monolog\Formatter\LineFormatter("%message%\n"));
+    $logger = new Monolog\Logger('test');
+    $logger->pushHandler($handler);
+    $logger->pushProcessor(new Monolog\Processor\PsrLogMessageProcessor());
+    $path = '/tmp/ModelCase/Checkpoint.safetensors';
+    $result = new \Iigau\StableDiffusionCheckpointLinker\Sync\SynchronizerResult(
+        new \Iigau\StableDiffusionCheckpointLinker\Sync\OperationCounts(created: 1),
+        3,
+        1,
+        ['link /tmp/source.safetensors -> ' . $path . ' (create)'],
+        'link /tmp/source2.safetensors -> ' . $path . ' (create)',
+        'database write failed',
+        ['created link'],
+        ['unlink /tmp/ModelCase/other.safetensors (unlink)']
+    );
+    (new \Iigau\StableDiffusionCheckpointLinker\Console\SyncResultPrinter($logger))->print($result, false);
+    rewind($stream);
+    $diagnostic = stream_get_contents($stream);
+    fclose($stream);
+    check(str_contains($diagnostic, 'completed: link /tmp/source.safetensors -> ' . $path), 'Completed operation missing.');
+    check(str_contains($diagnostic, 'partial effect before failure: created link'), 'Partial effect missing.');
+    check(str_contains($diagnostic, 'failed: link /tmp/source2.safetensors -> ' . $path . ' (create): database write failed'), 'Failure status missing.');
+    check(str_contains($diagnostic, 'not executed: unlink /tmp/ModelCase/other.safetensors'), 'Pending operation missing.');
+    check(str_contains($diagnostic, $path), 'Path case was changed in diagnostics.');
+});
+
 test('destination parent file is rejected before database initialization', function (): void {
     $root = sys_get_temp_dir() . '/linker-parent-file-' . bin2hex(random_bytes(8));
     mkdir($root . '/bin', 0700, true);
@@ -410,7 +445,7 @@ test('destination parent file is rejected before database initialization', funct
     try {
         [$status, , $stderr] = runCommand($root, 'sync', $yaml);
         check($status === 1, 'Expected preflight exit 1 for a regular-file destination parent.');
-        check(str_contains($stderr, 'Preflight error:'), 'Missing preflight diagnostic.');
+        check(str_contains($stderr, 'preflight error:'), 'Missing preflight diagnostic.');
         check(!file_exists($root . '/data/links.sqlite'), 'Preflight created a database.');
         check(file_get_contents($root . '/destination-file') === 'keep', 'Destination file was modified.');
     } finally {

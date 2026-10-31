@@ -7,7 +7,7 @@ namespace Iigau\StableDiffusionCheckpointLinker\Sync;
 final class SynchronizerResult
 {
     public function __construct(
-        public readonly array $counts,
+        public readonly OperationCounts $counts,
         public readonly int $operationCount,
         public readonly int $completedCount,
         public readonly array $completedOperations,
