@@ -59,6 +59,19 @@ after the file. Use `--` before a file name that begins with `-`:
 ./bin/linker sync -- -config.yaml
 ```
 
+Use `edit` to open a configuration file without validating its YAML, reading
+standard input, accessing the management database, or running a sync:
+
+```bash
+./bin/linker edit /path/to/config.yaml
+./bin/linker edit /path/to/config.yaml /usr/bin/code --wait
+```
+
+When no editor is given, `VISUAL` is used before `EDITOR`; either environment
+value is treated as a shell command. An editor supplied on the command line is
+executed directly without a shell. In both cases the config path is appended
+as the editor's final argument. `./bin/linker edit --help` shows the details.
+
 `sync` creates or updates the selected links. `clear` removes links that the
 management database confirms belong to SD-Linker and that are described by the
 selected configuration. It does not search for links omitted from the

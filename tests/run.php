@@ -174,11 +174,15 @@ test('README configuration example loads', function () use ($loader): void {
     check($loader->load($matches[1])->lookupKeys === ['checkpoint'], 'README selection changed.');
 });
 
-function runCommand(string $root, string $command, string $yaml, array $arguments = [], ?string $cwd = null): array
+function runCommand(string $root, string $command, string $yaml, array $arguments = [], ?string $cwd = null, ?array $environment = null): array
 {
+    $processEnvironment = null;
+    if ($environment !== null) {
+        $processEnvironment = array_merge(getenv(), $environment);
+    }
     $process = proc_open(["$root/bin/linker", $command, ...$arguments], [
         0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w'],
-    ], $pipes, $cwd ?? $root);
+    ], $pipes, $cwd ?? $root, $processEnvironment);
     if (!is_resource($process)) {
         throw new RuntimeException('Could not start CLI test.');
     }
@@ -245,6 +249,9 @@ symlink(realpath(__DIR__ . '/../vendor'), $root . '/vendor');
 mkdir($root . '/bin', 0700);
 copy(__DIR__ . '/../bin/linker', "$root/bin/linker");
 chmod("$root/bin/linker", 0700);
+$editorScript = $root . '/fake editor.php';
+file_put_contents($editorScript, "#!/usr/bin/env php\n<?php\nfile_put_contents(getenv('EDITOR_LOG'), json_encode(['args' => array_slice(\$argv, 1), 'cwd' => getcwd(), 'stdin' => stream_get_contents(STDIN)]));\nfwrite(STDOUT, \"fake editor stdout\\n\");\nfwrite(STDERR, \"fake editor stderr\\n\");\nusleep(50000);\nfile_put_contents(getenv('EDITOR_DONE'), 'done');\nexit((int) (getenv('EDITOR_STATUS') ?: '0'));\n");
+chmod($editorScript, 0700);
 
 try {
     test('global help is direct, complete, and does not initialize the DB', function () use ($root): void {
@@ -279,6 +286,136 @@ try {
         [$status, $stdout, $stderr] = runCommandWithOpenStdin($root, ['NO_SUCH_COMMAND']);
         check($status === 2 && $stdout === '' && str_contains($stderr, 'unknown command: NO_SUCH_COMMAND'), 'Unknown command response is incorrect.');
         check(!file_exists($root . '/data'), 'Unknown command initialized the database.');
+    });
+    test('edit help does not read stdin or initialize the DB', function () use ($root): void {
+        [$status, $stdout, $stderr] = runCommandWithOpenStdin($root, ['edit', '--help']);
+        check($status === 0 && $stderr === '', 'edit help failed.');
+        check(str_contains($stdout, 'Usage: ./bin/linker edit CONFIG [EDITOR [ARGS...]]'), 'edit help is incomplete.');
+        check(!file_exists($root . '/data'), 'edit help initialized the database.');
+    });
+    test('edit without CONFIG is an argument error', function () use ($root): void {
+        [$status, $stdout, $stderr] = runCommand($root, 'edit', '', []);
+        check($status === 2 && $stdout === '', 'edit without CONFIG was accepted.');
+        check(str_contains($stderr, 'argument error:'), 'edit without CONFIG omitted the argument diagnostic.');
+    });
+    test('edit rejects option-like CONFIGs without starting an editor', function () use ($root, $editorScript): void {
+        foreach ([['--dry-run'], ['--category', 'models'], ['--unknown'], ['--help', 'extra']] as $arguments) {
+            $log = $root . '/should-not-run.json';
+            [$status, $stdout, $stderr] = runCommand(
+                $root,
+                'edit',
+                '',
+                $arguments,
+                null,
+                ['EDITOR_LOG' => $log, 'EDITOR_DONE' => $root . '/should-not-finish', 'EDITOR_STATUS' => '0', 'VISUAL' => '', 'EDITOR' => '']
+            );
+            check($status === 2 && $stdout === '', 'Option-like CONFIG was accepted: ' . implode(' ', $arguments));
+            check(str_contains($stderr, 'argument error:'), 'Option-like CONFIG did not report an argument error.');
+            check(!file_exists($log), 'Editor started for an option-like CONFIG.');
+            check(!file_exists($root . '/should-not-finish'), 'Editor completed for an option-like CONFIG.');
+        }
+        $dashFile = './-config.yaml';
+        file_put_contents($root . '/' . $dashFile, 'bad yaml');
+        $log = $root . '/dash-file-editor.json';
+        [$status] = runCommand(
+            $root,
+            'edit',
+            '',
+            [$dashFile, $editorScript],
+            null,
+            ['EDITOR_LOG' => $log, 'EDITOR_DONE' => $root . '/dash-file-done', 'EDITOR_STATUS' => '0', 'VISUAL' => '', 'EDITOR' => '']
+        );
+        check($status === 0 && file_exists($log), 'Explicit ./-config.yaml path was rejected.');
+    });
+    test('edit explicit editor receives literal argv and final CONFIG with inherited streams and cwd', function () use ($root, $editorScript): void {
+        file_put_contents($root . '/relative config.yaml', 'not valid YAML');
+        $log = $root . '/editor.json';
+        $done = $root . '/editor.done';
+        $literal = "x'; touch should-not-exist; echo 'y";
+        [$status, $stdout, $stderr] = runCommand(
+            $root,
+            'edit',
+            'stdin reaches editor',
+            ['relative config.yaml', $editorScript, 'argument with spaces', $literal, '--help'],
+            null,
+            ['EDITOR_LOG' => $log, 'EDITOR_DONE' => $done, 'EDITOR_STATUS' => '0', 'VISUAL' => 'broken \' command', 'EDITOR' => 'missing-editor']
+        );
+        check($status === 0, "Explicit editor failed: $stderr");
+        check($stdout === "fake editor stdout\n", 'Editor stdout was not inherited.');
+        check(str_contains($stderr, "fake editor stderr\n"), 'Editor stderr was not inherited.');
+        $record = json_decode((string) file_get_contents($log), true, flags: JSON_THROW_ON_ERROR);
+        check($record['args'] === ['argument with spaces', $literal, '--help', 'relative config.yaml'], 'Explicit editor argv boundaries or final CONFIG changed.');
+        check($record['cwd'] === $root, 'Editor cwd was not inherited.');
+        check($record['stdin'] === 'stdin reaches editor', 'Editor stdin was not inherited.');
+        check(file_exists($done), 'CLI returned before the editor completed.');
+        check(!file_exists($root . '/should-not-exist'), 'Explicit editor arguments were interpreted by a shell.');
+        check(!file_exists($root . '/data'), 'edit initialized the database.');
+    });
+    test('edit uses VISUAL as a shell command and passes CONFIG as a separate final argument', function () use ($root, $editorScript): void {
+        $log = $root . '/visual-editor.json';
+        $config = "config 'quoted' \$(touch should-not-exist).yaml";
+        file_put_contents($root . '/' . $config, 'bad yaml');
+        $visual = escapeshellarg($editorScript) . " --visual 'value with spaces'";
+        $done = $root . '/visual-editor.done';
+        [$status, $stdout, $stderr] = runCommand(
+            $root,
+            'edit',
+            '',
+            [$config],
+            null,
+            ['EDITOR_LOG' => $log, 'EDITOR_DONE' => $done, 'EDITOR_STATUS' => '0', 'VISUAL' => $visual, 'EDITOR' => 'missing-editor']
+        );
+        check($status === 0 && $stderr === "fake editor stderr\n", "VISUAL editor failed: $stderr");
+        check($stdout === "fake editor stdout\n", 'VISUAL editor stdout was not inherited.');
+        $record = json_decode((string) file_get_contents($log), true, flags: JSON_THROW_ON_ERROR);
+        check($record['args'] === ['--visual', 'value with spaces', $config], 'VISUAL command arguments or CONFIG boundary changed.');
+        check(file_exists($done), 'CLI returned before the environment editor completed.');
+        check(!file_exists($root . '/should-not-exist'), 'CONFIG shell metacharacters were interpreted by the shell.');
+        check(!file_exists($root . '/data'), 'VISUAL edit initialized the database.');
+    });
+    test('edit falls back from blank VISUAL to EDITOR and reports editor failure as status 1', function () use ($root, $editorScript): void {
+        $log = $root . '/fallback-editor.json';
+        $done = $root . '/fallback-editor.done';
+        $editor = escapeshellarg($editorScript) . ' --fallback';
+        [$status, $stdout, $stderr] = runCommand(
+            $root,
+            'edit',
+            '',
+            ['config.yaml'],
+            null,
+            ['EDITOR_LOG' => $log, 'EDITOR_DONE' => $done, 'EDITOR_STATUS' => '7', 'VISUAL' => '  ', 'EDITOR' => $editor]
+        );
+        check($status === 1, 'Nonzero editor status was not mapped to failure.');
+        check($stdout === "fake editor stdout\n", 'Failed editor stdout was not inherited.');
+        check(str_contains($stderr, "fake editor stderr\n") && str_contains($stderr, 'editor exited with status 7'), 'Editor failure details were not reported.');
+        $record = json_decode((string) file_get_contents($log), true, flags: JSON_THROW_ON_ERROR);
+        check($record['args'] === ['--fallback', 'config.yaml'], 'EDITOR fallback did not receive CONFIG last.');
+        check(file_exists($done), 'CLI returned before the failing editor completed.');
+    });
+    test('edit without explicit or environment editor is an argument error', function () use ($root): void {
+        [$status, $stdout, $stderr] = runCommand(
+            $root,
+            'edit',
+            '',
+            ['config.yaml'],
+            null,
+            ['VISUAL' => '', 'EDITOR' => '']
+        );
+        check($status === 2 && $stdout === '', 'Missing editor was not an argument error.');
+        check(str_contains($stderr, 'VISUAL and EDITOR are unset'), 'Missing editor diagnostic is incomplete.');
+        check(!file_exists($root . '/data'), 'Missing editor initialized the database.');
+    });
+    test('missing explicit editor executable fails with status 1', function () use ($root): void {
+        [$status, $stdout, $stderr] = runCommand(
+            $root,
+            'edit',
+            '',
+            ['config.yaml', '/no/such/editor'],
+            null,
+            ['VISUAL' => 'broken \' command', 'EDITOR' => 'also-invalid']
+        );
+        check($status === 1 && $stdout === '', 'Missing explicit editor did not fail with status 1.');
+        check(str_contains($stderr, 'editor'), 'Missing explicit editor did not report a failure.');
     });
     test('repository entrypoint is executable', function (): void {
         check(is_executable(__DIR__ . '/../bin/linker'), 'bin/linker is missing its executable permission.');

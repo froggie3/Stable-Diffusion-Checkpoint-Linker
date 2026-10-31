@@ -14,6 +14,8 @@ CONFIG=/path/to/config.yaml
 
 Read the selected command's `--help` when you need current option, configuration, or safety details. It documents stdin, category selection, path rules, operation behavior, streams, exit codes, and failure handling.
 
+To open a configuration for editing, run `"$LINKER_ROOT/bin/linker" edit "$CONFIG"`. The editor comes from `VISUAL`, then `EDITOR`; you can supply an explicit editor and arguments after the config path. This command does not validate YAML or run an operation. Use the command help for exact argument behavior.
+
 Preview the requested operation, inspect its planned targets, run the same command with the same configuration and category flags, then verify the affected links and source files:
 
 ```bash
