@@ -5,7 +5,7 @@ it does not copy or modify the model files themselves. It targets GNU/Linux.
 
 ## Requirements
 
-- PHP 8.1 or later
+- PHP 8.3 or later
 - Composer
 - PHP PDO with the SQLite driver (`pdo_sqlite`)
 

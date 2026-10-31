@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "304521bfb7afaa25bc211369f9e95111",
+    "content-hash": "f929154c3553bc0d4c4a2162f342d4e1",
     "packages": [
         {
             "name": "monolog/monolog",
@@ -3039,13 +3039,13 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": ">=8.1",
+        "php": ">=8.3",
         "ext-pdo": "*",
         "ext-pdo_sqlite": "*"
     },
     "platform-dev": {},
     "platform-overrides": {
-        "php": "8.1.0"
+        "php": "8.3.0"
     },
     "plugin-api-version": "2.11.0"
 }
