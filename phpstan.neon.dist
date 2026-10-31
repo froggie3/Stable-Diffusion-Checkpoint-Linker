@@ -1,12 +1,10 @@
 parameters:
     level: 5
-    phpVersion: 80100
+    phpVersion: 80300
     tmpDir: .cache/phpstan
     paths:
         - src
-        - bin
         - tests
         - scripts
         - .php-cs-fixer.dist.php
-        - bin/sync
-        - bin/clear
+        - linker

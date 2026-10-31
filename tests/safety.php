@@ -5,17 +5,16 @@ declare(strict_types=1);
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * Run a CLI case in a fresh disposable project. The application derives its
- * project root from bin/{sync,clear}, so data/ always stays inside this tree.
+ * Run a CLI case in a fresh disposable project. The executable derives its
+ * project root from its own location, so data/ always stays inside this tree.
  */
 function safetyScenario(callable $callback): void
 {
     $root = sys_get_temp_dir() . '/linker-safety-' . bin2hex(random_bytes(8));
-    mkdir($root . '/bin', 0700, true);
+    mkdir($root, 0700, true);
     symlink(realpath(__DIR__ . '/../vendor'), $root . '/vendor');
-    foreach (['sync', 'clear', 'common.php'] as $file) {
-        copy(__DIR__ . '/../bin/' . $file, "$root/bin/$file");
-    }
+    copy(__DIR__ . '/../linker', "$root/linker");
+    chmod("$root/linker", 0700);
     try {
         $callback($root);
     } finally {
@@ -43,7 +42,7 @@ function safetyRemoveTree(string $path): void
 function safetyRunCli(string $root, string $command, array $arguments = [], ?string $yaml = null): array
 {
     $process = proc_open(
-        [PHP_BINARY, "$root/bin/$command", ...$arguments],
+        ["$root/linker", $command, ...$arguments],
         [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
         $pipes,
         $root
@@ -511,8 +510,43 @@ test('sync rejects source path that is the existing target symlink itself', func
 
 test('--help succeeds without input and does not initialize DB', function (): void {
     safetyScenario(function (string $root): void {
-        safetyAssertStatus(safetyRunCli($root, 'sync', ['--help']), 0, 'help');
+        foreach (['sync', 'clear'] as $mode) {
+            [$status, $stdout, $stderr] = safetyRunCli($root, $mode, ['--help']);
+            safetyAssertStatus([$status, $stdout, $stderr], 0, "$mode help");
+            check($stdout !== '' && $stderr === '', "$mode help should always print to stdout.");
+            check(str_contains($stdout, '-v, --verbose') && str_contains($stdout, 'lookupKeys'), "$mode help is missing its options or schema.");
+            if ($mode === 'sync') {
+                check(preg_match('/Minimal YAML configuration:\n((?:  .*\n)+)/', $stdout, $matches) === 1, 'Help YAML example missing.');
+                $yaml = preg_replace('/^  /m', '', $matches[1]);
+                check((new Iigau\StableDiffusionCheckpointLinker\Config\ConfigurationLoader())->load($yaml)->lookupKeys === ['checkpoint'], 'Help YAML example is invalid.');
+            }
+        }
         check(!safetyDbExists($root), '--help initialized the DB.');
+    });
+});
+
+test('successful output is silent by default and -v equals --verbose', function () use ($catPath, $targetPath, $sourcePath): void {
+    safetyScenario(function (string $root) use ($catPath, $targetPath, $sourcePath): void {
+        mkdir($root . '/source', 0700, true);
+        mkdir($catPath($root), 0700, true);
+        file_put_contents($sourcePath($root, 'source', 'a.bin'), 'a');
+        $yaml = safetyConfig(['models' => safetyGroup($root . '/source', ['a.bin'])], null, ['models' => $catPath($root)]);
+        [$status, $stdout, $stderr] = safetyRunCli($root, 'sync', [], $yaml);
+        safetyAssertStatus([$status, $stdout, $stderr], 0, 'silent sync');
+        check($stdout === '' && $stderr === '', 'Successful command emitted output without verbose.');
+        unlink($targetPath($root, 'a.bin'));
+        unlink($root . '/data/links.sqlite');
+        safetyRemoveTree($root . '/data');
+        [$shortStatus, $shortOut, $shortErr] = safetyRunCli($root, 'sync', ['-v'], $yaml);
+        unlink($targetPath($root, 'a.bin'));
+        unlink($root . '/data/links.sqlite');
+        safetyRemoveTree($root . '/data');
+        [$longStatus, $longOut, $longErr] = safetyRunCli($root, 'sync', ['--verbose'], $yaml);
+        safetyAssertStatus([$shortStatus, $shortOut, $shortErr], 0, '-v');
+        safetyAssertStatus([$longStatus, $longOut, $longErr], 0, '--verbose');
+        check(str_contains($shortOut, 'created links: 1') && str_contains($longOut, 'created links: 1'), 'Verbose counts are missing.');
+        check(str_contains($shortOut, 'completed: link ') && str_contains($longOut, 'completed: link ')
+            && $shortErr === '' && $longErr === '', 'Verbose aliases differ in behavior or wrote to stderr.');
     });
 });
 

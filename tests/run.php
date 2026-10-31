@@ -74,7 +74,7 @@ $invalid = [
     'whitespace category' => ["lookupKeys: ['  ']\n" . $sections, 'non-empty strings'],
     'numeric category' => ["lookupKeys: [123]\n" . $sections, 'non-empty strings'],
     'boolean category' => ["lookupKeys: [false]\n" . $sections, 'non-empty strings'],
-    'duplicate category' => ["lookupKeys: [loras, loras]\n" . $sections, 'Duplicate category'],
+    'duplicate category' => ["lookupKeys: [loras, loras]\n" . $sections, 'duplicate category'],
     'unknown source category' => ["lookupKeys: [missing]\n" . $sections, 'source.missing'],
     'missing source' => ["lookupKeys: [loras]\ndestination: {loras: /tmp/models}\n", 'source'],
     'scalar source' => ["lookupKeys: [loras]\nsource: invalid\ndestination: {loras: /tmp/models}\n", 'source'],
@@ -87,9 +87,9 @@ $invalid = [
     'empty document' => ['', 'mapping'],
     'scalar document' => ['some-file.yaml', 'mapping'],
     'sequence document' => ['[one, two]', 'mapping'],
-    'malformed YAML' => ["lookupKeys: [loras\n", 'Invalid YAML'],
-    'duplicate YAML key' => ["lookupKeys: [loras]\nlookupKeys: [loras]\n" . $sections, 'Invalid YAML'],
-    'unsupported YAML tag' => ["lookupKeys: !php/object 'invalid'\n" . $sections, 'Invalid YAML'],
+    'malformed YAML' => ["lookupKeys: [loras\n", 'invalid YAML'],
+    'duplicate YAML key' => ["lookupKeys: [loras]\nlookupKeys: [loras]\n" . $sections, 'invalid YAML'],
+    'unsupported YAML tag' => ["lookupKeys: !php/object 'invalid'\n" . $sections, 'invalid YAML'],
 ];
 
 foreach ($invalid as $name => [$yaml, $message]) {
@@ -97,18 +97,18 @@ foreach ($invalid as $name => [$yaml, $message]) {
 }
 
 test('valid selection with empty model groups', function () use ($loader, $valid): void {
-    check($loader->load($valid)['lookupKeys'] === ['loras'], 'Selection changed.');
+    check($loader->load($valid)->lookupKeys === ['loras'], 'Selection changed.');
 });
 
 test('only selected categories need a destination', function () use ($loader, $valid): void {
     $yaml = str_replace("  loras: []\n", "  loras: []\n  unused: []\n", $valid);
     $config = $loader->load($yaml);
-    check($config['lookupKeys'] === ['loras'], 'Selection expanded.');
+    check($config->lookupKeys === ['loras'], 'Selection expanded.');
 });
 
 test('multiple categories preserve selection order', function () use ($loader): void {
     $config = $loader->load("lookupKeys: [vae, loras]\nsource: {loras: [], vae: []}\ndestination: {loras: /tmp/loras, vae: /tmp/vae}\n");
-    check($config['lookupKeys'] === ['vae', 'loras'], 'Selection order changed.');
+    check($config->lookupKeys === ['vae', 'loras'], 'Selection order changed.');
 });
 
 $modelGroup = <<<'YAML'
@@ -127,9 +127,9 @@ YAML;
 
 test('ordinary indentation and comments', function () use ($loader, $modelGroup): void {
     $config = $loader->load("# Models\nlookupKeys:\n  - loras\n" . $modelGroup);
-    $group = $config['source']['loras'][0];
-    check($group['meta']['enabled'] === false, 'Boolean changed.');
-    check($group['weightsList'] === ['001.safetensors', '2026-10-30'], 'Quoted strings changed.');
+    $group = $config->category('loras')->groups[0];
+    check($group->enabled === false, 'Boolean changed.');
+    check($group->weightsList === ['001.safetensors', '2026-10-30'], 'Quoted strings changed.');
 });
 
 test('indentless sequences preserve model groups and weights', function () use ($loader, $modelGroup): void {
@@ -149,7 +149,13 @@ source:
 destination:
   loras: /tmp/models
 YAML;
-    check($loader->load($indented) === $loader->load($indentless), 'Equivalent sequences parsed differently.');
+    $left = $loader->load($indented)->category('loras')->groups[0];
+    $right = $loader->load($indentless)->category('loras')->groups[0];
+    check(
+        $left->enabled === $right->enabled && $left->baseDirectory === $right->baseDirectory
+        && $left->weightsList === $right->weightsList && $left->ignoreList === $right->ignoreList,
+        'Equivalent sequences parsed differently.'
+    );
 });
 
 test('syntax error includes a line number', function () use ($loader): void {
@@ -158,21 +164,21 @@ test('syntax error includes a line number', function () use ($loader): void {
 
 test('distributed example loads', function () use ($loader): void {
     $config = $loader->load(file_get_contents(__DIR__ . '/../config/example.yaml'));
-    check(count($config['lookupKeys']) === 6, 'Example categories missing.');
-    check(count($config['source']['checkpoint']) === 3, 'Example groups missing.');
+    check(count($config->lookupKeys) === 6, 'Example categories missing.');
+    check(count($config->category('checkpoint')->groups) === 3, 'Example groups missing.');
 });
 
 test('README configuration example loads', function () use ($loader): void {
     $readme = file_get_contents(__DIR__ . '/../README.md');
     check(preg_match('/```yaml\R(.*?)```/s', $readme, $matches) === 1, 'README YAML missing.');
-    check($loader->load($matches[1])['lookupKeys'] === ['checkpoint'], 'README selection changed.');
+    check($loader->load($matches[1])->lookupKeys === ['checkpoint'], 'README selection changed.');
 });
 
-function runCommand(string $root, string $command, string $yaml): array
+function runCommand(string $root, string $command, string $yaml, array $arguments = [], ?string $cwd = null): array
 {
-    $process = proc_open([PHP_BINARY, "$root/bin/$command"], [
+    $process = proc_open(["$root/linker", $command, ...$arguments], [
         0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w'],
-    ], $pipes, $root);
+    ], $pipes, $cwd ?? $root);
     if (!is_resource($process)) {
         throw new RuntimeException('Could not start CLI test.');
     }
@@ -183,6 +189,42 @@ function runCommand(string $root, string $command, string $yaml): array
     fclose($pipes[1]);
     fclose($pipes[2]);
     return [proc_close($process), $stdout, $stderr];
+}
+
+/** @return array{0:int,1:string,2:string} */
+function runCommandWithOpenStdin(string $root, array $arguments): array
+{
+    $process = proc_open(["$root/linker", ...$arguments], [
+        0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w'],
+    ], $pipes, sys_get_temp_dir());
+    if (!is_resource($process)) {
+        throw new RuntimeException('Could not start CLI help test.');
+    }
+    stream_set_blocking($pipes[1], false);
+    stream_set_blocking($pipes[2], false);
+    $stdout = '';
+    $stderr = '';
+    $deadline = microtime(true) + 3.0;
+    do {
+        $stdout .= stream_get_contents($pipes[1]);
+        $stderr .= stream_get_contents($pipes[2]);
+        $status = proc_get_status($process);
+        if (!$status['running']) {
+            fclose($pipes[0]);
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+            proc_close($process);
+            return [$status['exitcode'], $stdout, $stderr];
+        }
+        usleep(10000);
+    } while (microtime(true) < $deadline);
+
+    proc_terminate($process);
+    fclose($pipes[0]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    proc_close($process);
+    throw new RuntimeException('Help waited for stdin instead of exiting.');
 }
 
 function removeTemporaryDirectory(string $path): void
@@ -198,20 +240,62 @@ function removeTemporaryDirectory(string $path): void
 }
 
 $root = sys_get_temp_dir() . '/linker-config-tests-' . bin2hex(random_bytes(8));
-mkdir($root . '/bin', 0700, true);
+mkdir($root, 0700, true);
 symlink(realpath(__DIR__ . '/../vendor'), $root . '/vendor');
-foreach (['sync', 'clear', 'common.php'] as $file) {
-    copy(__DIR__ . '/../bin/' . $file, "$root/bin/$file");
-}
+copy(__DIR__ . '/../linker', "$root/linker");
+chmod("$root/linker", 0700);
 
 try {
+    test('global help is direct, complete, and does not initialize the DB', function () use ($root): void {
+        [$status, $stdout, $stderr] = runCommandWithOpenStdin($root, []);
+        check($status === 0 && $stderr === '', 'Global help failed.');
+        check(str_contains($stdout, 'Commands:') && str_contains($stdout, 'sync') && str_contains($stdout, 'clear'), 'Global help omitted commands.');
+        check(!file_exists($root . '/data'), 'Global help initialized the database.');
+    });
+    test('global help aliases do not read an open stdin pipe', function () use ($root): void {
+        foreach ([['-h'], ['--help']] as $arguments) {
+            [$status, $stdout, $stderr] = runCommandWithOpenStdin($root, $arguments);
+            check($status === 0 && $stderr === '' && str_contains($stdout, 'Usage:'), 'Global help alias failed.');
+        }
+        check(!file_exists($root . '/data'), 'Global help created the database.');
+    });
+    test('global help with extra arguments is rejected without reading stdin', function () use ($root): void {
+        foreach ([['--help', '--unknown'], ['-h', 'unexpected']] as $arguments) {
+            [$status, $stdout, $stderr] = runCommandWithOpenStdin($root, $arguments);
+            check($status === 2 && $stdout === '' && str_contains($stderr, 'argument error:'), 'Malformed global help arguments were accepted.');
+        }
+        check(!file_exists($root . '/data'), 'Malformed global help initialized the database.');
+    });
+    foreach (['sync', 'clear'] as $command) {
+        test("$command detailed help is direct and does not read stdin or initialize the DB", function () use ($root, $command): void {
+            [$status, $stdout, $stderr] = runCommandWithOpenStdin($root, [$command, '--help']);
+            check($status === 0 && $stderr === '', "$command help failed.");
+            check(str_contains($stdout, "Usage: ./linker $command") && str_contains($stdout, 'Exit codes:'), "$command help is incomplete.");
+            check(!file_exists($root . '/data'), "$command help initialized the database.");
+        });
+    }
+    test('unknown command is lowercase stderr with status 2 and no DB access', function () use ($root): void {
+        [$status, $stdout, $stderr] = runCommandWithOpenStdin($root, ['NO_SUCH_COMMAND']);
+        check($status === 2 && $stdout === '' && str_contains($stderr, 'unknown command: NO_SUCH_COMMAND'), 'Unknown command response is incorrect.');
+        check(!file_exists($root . '/data'), 'Unknown command initialized the database.');
+    });
+    test('repository entrypoint is executable', function (): void {
+        check(is_executable(__DIR__ . '/../linker'), 'linker is missing its executable permission.');
+    });
+    test('executable runs from a different working directory', function () use ($root, $valid): void {
+        [$status, $stdout, $stderr] = runCommand($root, 'sync', $valid, ['--dry-run'], sys_get_temp_dir());
+        check($status === 0 && $stderr === '', "Direct executable from another cwd failed: $stderr");
+        check(str_contains($stdout, 'dry run: no filesystem or database changes made.'), 'Dry-run output is missing.');
+        check(!file_exists($root . '/data'), 'Dry-run from another cwd initialized the database.');
+    });
+
     foreach (['sync', 'clear'] as $command) {
         test("$command rejects invalid configuration before DB initialization", function () use ($root, $command, $invalid): void {
             foreach ($invalid as $name => [$yaml, $message]) {
                 [$status, $stdout, $stderr] = runCommand($root, $command, $yaml);
                 check($status === 1, "$name: expected exit 1, received $status");
                 check($stdout === '', "$name: unexpected success output");
-                check(str_contains($stderr, 'Configuration error: '), "$name: missing configuration diagnostic");
+                check(str_contains($stderr, 'configuration error: '), "$name: missing configuration diagnostic");
                 check(!str_contains($stderr, 'Fatal error'), "$name: unexpected uncaught exception");
                 check(!file_exists($root . '/data'), "$name: created database directory");
             }
@@ -223,7 +307,7 @@ try {
         test("$command accepts valid configuration with an isolated DB", function () use ($root, $command, $valid): void {
             [$status, $stdout, $stderr] = runCommand($root, $command, $valid);
             check($status === 0, "Exit $status: $stderr");
-            check(str_contains($stdout, 'Operations completed:'), 'Success summary missing.');
+            check($stdout === '' && $stderr === '', 'Successful execution should be silent by default.');
             $db = new PDO('sqlite:' . $root . '/data/links.sqlite');
             check((int) $db->query('SELECT COUNT(*) FROM links')->fetchColumn() === 0, 'Unexpected link records.');
         });
@@ -237,23 +321,23 @@ function plannedLinkForTest(string $source, string $target, string $root, string
     $parent = realpath(dirname($target));
     $stat = $parent === false ? false : stat(dirname($target));
     return new \Iigau\StableDiffusionCheckpointLinker\Sync\PlannedOperation(
-        'link',
+        \Iigau\StableDiffusionCheckpointLinker\Sync\OperationType::LINK,
         $source,
         $target,
-        $action,
-        [
-            'kind' => 'absent',
-            'linkTarget' => null,
-            'recordSource' => null,
-            'parent' => [
-                'canonical' => $parent === false ? null : $parent,
-                'device' => $stat === false ? null : $stat['dev'],
-                'inode' => $stat === false ? null : $stat['ino'],
-                'isDirectory' => $parent !== false && is_dir(dirname($target)),
-            ],
-            'rootCanonical' => realpath($root) ?: null,
-            'rootPath' => $root,
-        ]
+        \Iigau\StableDiffusionCheckpointLinker\Sync\OperationAction::from($action),
+        new \Iigau\StableDiffusionCheckpointLinker\Sync\OperationSnapshot(
+            \Iigau\StableDiffusionCheckpointLinker\Link\FilesystemKind::ABSENT,
+            null,
+            null,
+            new \Iigau\StableDiffusionCheckpointLinker\Sync\DirectorySnapshot(
+                $parent === false ? null : $parent,
+                $stat === false ? null : $stat['dev'],
+                $stat === false ? null : $stat['ino'],
+                $parent !== false && is_dir(dirname($target))
+            ),
+            realpath($root) ?: null,
+            $root
+        )
     );
 }
 
@@ -396,21 +480,49 @@ test('executor rechecks link source immediately before mutation', function () us
     }
 });
 
+test('failure printer reports completed work, partial effects, failed path, and pending work to error stream', function (): void {
+    $stream = fopen('php://memory', 'r+');
+    $handler = new Monolog\Handler\StreamHandler($stream, Monolog\Level::Error);
+    $handler->setFormatter(new Monolog\Formatter\LineFormatter("%message%\n"));
+    $logger = new Monolog\Logger('test');
+    $logger->pushHandler($handler);
+    $logger->pushProcessor(new Monolog\Processor\PsrLogMessageProcessor());
+    $path = '/tmp/ModelCase/Checkpoint.safetensors';
+    $result = new \Iigau\StableDiffusionCheckpointLinker\Sync\SynchronizerResult(
+        new \Iigau\StableDiffusionCheckpointLinker\Sync\OperationCounts(created: 1),
+        3,
+        1,
+        ['link /tmp/source.safetensors -> ' . $path . ' (create)'],
+        'link /tmp/source2.safetensors -> ' . $path . ' (create)',
+        'database write failed',
+        ['created link'],
+        ['unlink /tmp/ModelCase/other.safetensors (unlink)']
+    );
+    (new \Iigau\StableDiffusionCheckpointLinker\Console\SyncResultPrinter($logger))->print($result, false);
+    rewind($stream);
+    $diagnostic = stream_get_contents($stream);
+    fclose($stream);
+    check(str_contains($diagnostic, 'completed: link /tmp/source.safetensors -> ' . $path), 'Completed operation missing.');
+    check(str_contains($diagnostic, 'partial effect before failure: created link'), 'Partial effect missing.');
+    check(str_contains($diagnostic, 'failed: link /tmp/source2.safetensors -> ' . $path . ' (create): database write failed'), 'Failure status missing.');
+    check(str_contains($diagnostic, 'not executed: unlink /tmp/ModelCase/other.safetensors'), 'Pending operation missing.');
+    check(str_contains($diagnostic, $path), 'Path case was changed in diagnostics.');
+});
+
 test('destination parent file is rejected before database initialization', function (): void {
     $root = sys_get_temp_dir() . '/linker-parent-file-' . bin2hex(random_bytes(8));
-    mkdir($root . '/bin', 0700, true);
+    mkdir($root, 0700, true);
     mkdir($root . '/source', 0700, true);
     symlink(realpath(__DIR__ . '/../vendor'), $root . '/vendor');
-    foreach (['sync', 'clear', 'common.php'] as $file) {
-        copy(__DIR__ . '/../bin/' . $file, "$root/bin/$file");
-    }
+    copy(__DIR__ . '/../linker', "$root/linker");
+    chmod("$root/linker", 0700);
     file_put_contents($root . '/source/model.bin', 'model');
     file_put_contents($root . '/destination-file', 'keep');
     $yaml = "lookupKeys: [models]\nsource:\n  models:\n    - meta: {enabled: true}\n      baseDirectory: $root/source\n      weightsList: [model.bin]\ndestination: {models: $root/destination-file}\n";
     try {
         [$status, , $stderr] = runCommand($root, 'sync', $yaml);
         check($status === 1, 'Expected preflight exit 1 for a regular-file destination parent.');
-        check(str_contains($stderr, 'Preflight error:'), 'Missing preflight diagnostic.');
+        check(str_contains($stderr, 'preflight error:'), 'Missing preflight diagnostic.');
         check(!file_exists($root . '/data/links.sqlite'), 'Preflight created a database.');
         check(file_get_contents($root . '/destination-file') === 'keep', 'Destination file was modified.');
     } finally {

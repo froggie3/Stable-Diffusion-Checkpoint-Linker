@@ -10,16 +10,16 @@ use Symfony\Component\Yaml\Yaml;
 
 final class ConfigurationLoader
 {
-    public function load(string $yaml): array
+    public function load(string $yaml): Configuration
     {
         try {
             $config = Yaml::parse($yaml, Yaml::PARSE_EXCEPTION_ON_INVALID_TYPE);
         } catch (ParseException $e) {
-            throw new InvalidArgumentException('Invalid YAML: ' . $e->getMessage(), 0, $e);
+            throw new InvalidArgumentException('invalid YAML: ' . $e->getMessage(), 0, $e);
         }
 
         if (!is_array($config) || array_is_list($config)) {
-            throw new InvalidArgumentException('Configuration must be a YAML mapping.');
+            throw new InvalidArgumentException('configuration must be a YAML mapping.');
         }
 
         $keys = $config['lookupKeys'] ?? null;
@@ -39,7 +39,7 @@ final class ConfigurationLoader
                 throw new InvalidArgumentException('lookupKeys entries must be non-empty strings.');
             }
             if (isset($seen[$key])) {
-                throw new InvalidArgumentException("Duplicate category in lookupKeys: $key");
+                throw new InvalidArgumentException("duplicate category in lookupKeys: $key");
             }
             $seen[$key] = true;
 
@@ -58,7 +58,20 @@ final class ConfigurationLoader
             }
         }
 
-        return $config;
+        $categories = [];
+        foreach ($keys as $key) {
+            $groups = [];
+            foreach ($config['source'][$key] as $group) {
+                $groups[] = new ModelGroup(
+                    $group['meta']['enabled'],
+                    $group['baseDirectory'],
+                    $group['weightsList'],
+                    $group['ignoreList'] ?? []
+                );
+            }
+            $categories[$key] = new CategoryConfiguration($key, $config['destination'][$key], $groups);
+        }
+        return new Configuration($keys, $categories);
     }
 
     private function validateGroup(string $category, int $index, mixed $group): void

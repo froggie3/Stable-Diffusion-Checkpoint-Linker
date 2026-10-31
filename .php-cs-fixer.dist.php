@@ -9,15 +9,10 @@ $finder = Finder::create()
     ->files()
     ->name('*.php')
     ->in(__DIR__ . '/src')
-    ->in(__DIR__ . '/bin')
     ->in(__DIR__ . '/tests')
     ->in(__DIR__ . '/config')
     ->in(__DIR__ . '/scripts')
-    ->append([
-        __DIR__ . '/bin/sync',
-        __DIR__ . '/bin/clear',
-        __FILE__,
-    ])
+    ->append([__DIR__ . '/linker', __FILE__])
     ->exclude(['vendor', 'data', '.cache']);
 
 return (new Config())
