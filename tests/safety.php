@@ -5,17 +5,16 @@ declare(strict_types=1);
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * Run a CLI case in a fresh disposable project. The application derives its
- * project root from bin/{sync,clear}, so data/ always stays inside this tree.
+ * Run a CLI case in a fresh disposable project. The executable derives its
+ * project root from its own location, so data/ always stays inside this tree.
  */
 function safetyScenario(callable $callback): void
 {
     $root = sys_get_temp_dir() . '/linker-safety-' . bin2hex(random_bytes(8));
-    mkdir($root . '/bin', 0700, true);
+    mkdir($root, 0700, true);
     symlink(realpath(__DIR__ . '/../vendor'), $root . '/vendor');
-    foreach (['sync', 'clear', 'common.php'] as $file) {
-        copy(__DIR__ . '/../bin/' . $file, "$root/bin/$file");
-    }
+    copy(__DIR__ . '/../linker', "$root/linker");
+    chmod("$root/linker", 0700);
     try {
         $callback($root);
     } finally {
@@ -43,7 +42,7 @@ function safetyRemoveTree(string $path): void
 function safetyRunCli(string $root, string $command, array $arguments = [], ?string $yaml = null): array
 {
     $process = proc_open(
-        [PHP_BINARY, "$root/bin/$command", ...$arguments],
+        ["$root/linker", $command, ...$arguments],
         [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
         $pipes,
         $root

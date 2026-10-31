@@ -43,15 +43,28 @@ final class CliApplication
         $this->logger = $logger;
     }
 
-    public function run(string $mode, array $arguments): int
+    /** @param list<string> $arguments */
+    public function run(array $arguments): int
     {
+        if ($arguments === [] || (count($arguments) === 1 && ($arguments[0] === '-h' || $arguments[0] === '--help'))) {
+            $this->printGlobalHelp();
+            return ExitCode::SUCCESS;
+        }
+
+        $command = Command::tryFrom($arguments[0]);
+        if ($command === null) {
+            $this->logger->error('argument error: unknown command: {command}', ['command' => $arguments[0]]);
+            return ExitCode::INVALID_ARGUMENT;
+        }
+
+        $arguments = array_slice($arguments, 1);
         $options = $this->parseArguments($arguments);
         if ($options->error !== null) {
             $this->logger->error('argument error: {message}', ['message' => $options->error]);
             return ExitCode::INVALID_ARGUMENT;
         }
         if ($options->help) {
-            $this->printHelp($mode);
+            $this->printHelp($command);
             return ExitCode::SUCCESS;
         }
 
@@ -90,7 +103,7 @@ final class CliApplication
                 $repository,
                 new PathIdentity()
             );
-            $plan = $mode === 'clear' ? $planner->planClear() : $planner->planSync();
+            $plan = $command === Command::CLEAR ? $planner->planClear() : $planner->planSync();
         } catch (Throwable $e) {
             $this->logger->error('preflight error: {message}', ['message' => $e->getMessage()]);
             return ExitCode::FAILURE;
@@ -163,14 +176,31 @@ final class CliApplication
         return new CliOptions($help, $dryRun, $verbose, $categories);
     }
 
-    private function printHelp(string $mode): void
+    private function printGlobalHelp(): void
     {
         $output = new ConsoleOutput();
-        $modeAction = $mode === 'clear'
+        foreach ([
+            'Usage: ./linker <command> [OPTIONS] < config.yaml',
+            '',
+            'Commands:',
+            '  sync     ' . Command::SYNC->description(),
+            '  clear    ' . Command::CLEAR->description(),
+            '',
+            'Run ./linker <command> --help for configuration, options, safety, and output details.',
+            'Configuration is read from standard input. Help does not read stdin or open the database.',
+        ] as $line) {
+            $output->line($line);
+        }
+    }
+
+    private function printHelp(Command $command): void
+    {
+        $output = new ConsoleOutput();
+        $modeAction = $command === Command::CLEAR
             ? 'Remove only links that the management database confirms are managed and that this configuration lists.'
             : 'Create, repair, replace, register, or remove the links selected by this configuration.';
         $lines = [
-            "Usage: php bin/$mode [OPTIONS] < config.yaml",
+            "Usage: ./linker {$command->value} [OPTIONS] < config.yaml",
             '',
             $modeAction,
             'Configuration is read from standard input. --help does not read stdin or open the database.',
@@ -182,9 +212,9 @@ final class CliApplication
             '  --category NAME            limit to a lookupKeys category (repeatable; --category=NAME is also accepted).',
             '',
             'Examples:',
-            "  php bin/$mode --help",
-            "  php bin/$mode --dry-run < config.yaml",
-            "  php bin/$mode -v --category checkpoint < config.yaml",
+            "  ./linker {$command->value} --help",
+            "  ./linker {$command->value} --dry-run < config.yaml",
+            "  ./linker {$command->value} -v --category checkpoint < config.yaml",
             '',
             'Minimal YAML configuration:',
             '  lookupKeys: [checkpoint]',

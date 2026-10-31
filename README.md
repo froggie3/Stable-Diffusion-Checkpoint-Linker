@@ -45,8 +45,8 @@ Copy `config/example.yaml`, then edit the copy for your model and destination
 directories. The programs read YAML from standard input:
 
 ```bash
-php bin/sync < /path/to/config.yaml
-php bin/clear < /path/to/config.yaml
+./linker sync < /path/to/config.yaml
+./linker clear < /path/to/config.yaml
 ```
 
 `sync` creates or updates the selected links. `clear` removes links that the
@@ -60,13 +60,16 @@ successful-operation details. The repeatable
 in that configuration's `lookupKeys` list. For example:
 
 ```bash
-php bin/sync --dry-run --category checkpoint < /path/to/config.yaml
-php bin/clear --category checkpoint --category lora < /path/to/config.yaml
+./linker sync --dry-run --category checkpoint < /path/to/config.yaml
+./linker clear --category checkpoint --category lora < /path/to/config.yaml
 ```
 
 A category outside `lookupKeys` is an error. `--dry-run` performs configuration
 and operation checks and reports the planned work without changing links or the
 management database.
+
+Run `./linker --help` for the command list, or `./linker <command> --help` for
+the full command reference.
 
 ## Configuration and command reference
 
@@ -78,7 +81,7 @@ literal: `~`, environment variables, and glob patterns are not expanded.
 destination; entries containing `..` are rejected. Quote paths and filenames
 when YAML could interpret them as another type.
 
-See `php bin/sync --help` or `php bin/clear --help` for the full key schema,
+See `./linker sync --help` or `./linker clear --help` for the full key schema,
 defaults, selection behavior, safety rules, output streams, and exit codes.
 Help prints without reading standard input or opening the database.
 

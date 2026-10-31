@@ -174,11 +174,11 @@ test('README configuration example loads', function () use ($loader): void {
     check($loader->load($matches[1])->lookupKeys === ['checkpoint'], 'README selection changed.');
 });
 
-function runCommand(string $root, string $command, string $yaml, array $arguments = []): array
+function runCommand(string $root, string $command, string $yaml, array $arguments = [], ?string $cwd = null): array
 {
-    $process = proc_open([PHP_BINARY, "$root/bin/$command", ...$arguments], [
+    $process = proc_open(["$root/linker", $command, ...$arguments], [
         0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w'],
-    ], $pipes, $root);
+    ], $pipes, $cwd ?? $root);
     if (!is_resource($process)) {
         throw new RuntimeException('Could not start CLI test.');
     }
@@ -189,6 +189,42 @@ function runCommand(string $root, string $command, string $yaml, array $argument
     fclose($pipes[1]);
     fclose($pipes[2]);
     return [proc_close($process), $stdout, $stderr];
+}
+
+/** @return array{0:int,1:string,2:string} */
+function runCommandWithOpenStdin(string $root, array $arguments): array
+{
+    $process = proc_open(["$root/linker", ...$arguments], [
+        0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w'],
+    ], $pipes, sys_get_temp_dir());
+    if (!is_resource($process)) {
+        throw new RuntimeException('Could not start CLI help test.');
+    }
+    stream_set_blocking($pipes[1], false);
+    stream_set_blocking($pipes[2], false);
+    $stdout = '';
+    $stderr = '';
+    $deadline = microtime(true) + 3.0;
+    do {
+        $stdout .= stream_get_contents($pipes[1]);
+        $stderr .= stream_get_contents($pipes[2]);
+        $status = proc_get_status($process);
+        if (!$status['running']) {
+            fclose($pipes[0]);
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+            proc_close($process);
+            return [$status['exitcode'], $stdout, $stderr];
+        }
+        usleep(10000);
+    } while (microtime(true) < $deadline);
+
+    proc_terminate($process);
+    fclose($pipes[0]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    proc_close($process);
+    throw new RuntimeException('Help waited for stdin instead of exiting.');
 }
 
 function removeTemporaryDirectory(string $path): void
@@ -204,13 +240,55 @@ function removeTemporaryDirectory(string $path): void
 }
 
 $root = sys_get_temp_dir() . '/linker-config-tests-' . bin2hex(random_bytes(8));
-mkdir($root . '/bin', 0700, true);
+mkdir($root, 0700, true);
 symlink(realpath(__DIR__ . '/../vendor'), $root . '/vendor');
-foreach (['sync', 'clear', 'common.php'] as $file) {
-    copy(__DIR__ . '/../bin/' . $file, "$root/bin/$file");
-}
+copy(__DIR__ . '/../linker', "$root/linker");
+chmod("$root/linker", 0700);
 
 try {
+    test('global help is direct, complete, and does not initialize the DB', function () use ($root): void {
+        [$status, $stdout, $stderr] = runCommandWithOpenStdin($root, []);
+        check($status === 0 && $stderr === '', 'Global help failed.');
+        check(str_contains($stdout, 'Commands:') && str_contains($stdout, 'sync') && str_contains($stdout, 'clear'), 'Global help omitted commands.');
+        check(!file_exists($root . '/data'), 'Global help initialized the database.');
+    });
+    test('global help aliases do not read an open stdin pipe', function () use ($root): void {
+        foreach ([['-h'], ['--help']] as $arguments) {
+            [$status, $stdout, $stderr] = runCommandWithOpenStdin($root, $arguments);
+            check($status === 0 && $stderr === '' && str_contains($stdout, 'Usage:'), 'Global help alias failed.');
+        }
+        check(!file_exists($root . '/data'), 'Global help created the database.');
+    });
+    test('global help with extra arguments is rejected without reading stdin', function () use ($root): void {
+        foreach ([['--help', '--unknown'], ['-h', 'unexpected']] as $arguments) {
+            [$status, $stdout, $stderr] = runCommandWithOpenStdin($root, $arguments);
+            check($status === 2 && $stdout === '' && str_contains($stderr, 'argument error:'), 'Malformed global help arguments were accepted.');
+        }
+        check(!file_exists($root . '/data'), 'Malformed global help initialized the database.');
+    });
+    foreach (['sync', 'clear'] as $command) {
+        test("$command detailed help is direct and does not read stdin or initialize the DB", function () use ($root, $command): void {
+            [$status, $stdout, $stderr] = runCommandWithOpenStdin($root, [$command, '--help']);
+            check($status === 0 && $stderr === '', "$command help failed.");
+            check(str_contains($stdout, "Usage: ./linker $command") && str_contains($stdout, 'Exit codes:'), "$command help is incomplete.");
+            check(!file_exists($root . '/data'), "$command help initialized the database.");
+        });
+    }
+    test('unknown command is lowercase stderr with status 2 and no DB access', function () use ($root): void {
+        [$status, $stdout, $stderr] = runCommandWithOpenStdin($root, ['NO_SUCH_COMMAND']);
+        check($status === 2 && $stdout === '' && str_contains($stderr, 'unknown command: NO_SUCH_COMMAND'), 'Unknown command response is incorrect.');
+        check(!file_exists($root . '/data'), 'Unknown command initialized the database.');
+    });
+    test('repository entrypoint is executable', function (): void {
+        check(is_executable(__DIR__ . '/../linker'), 'linker is missing its executable permission.');
+    });
+    test('executable runs from a different working directory', function () use ($root, $valid): void {
+        [$status, $stdout, $stderr] = runCommand($root, 'sync', $valid, ['--dry-run'], sys_get_temp_dir());
+        check($status === 0 && $stderr === '', "Direct executable from another cwd failed: $stderr");
+        check(str_contains($stdout, 'dry run: no filesystem or database changes made.'), 'Dry-run output is missing.');
+        check(!file_exists($root . '/data'), 'Dry-run from another cwd initialized the database.');
+    });
+
     foreach (['sync', 'clear'] as $command) {
         test("$command rejects invalid configuration before DB initialization", function () use ($root, $command, $invalid): void {
             foreach ($invalid as $name => [$yaml, $message]) {
@@ -433,12 +511,11 @@ test('failure printer reports completed work, partial effects, failed path, and 
 
 test('destination parent file is rejected before database initialization', function (): void {
     $root = sys_get_temp_dir() . '/linker-parent-file-' . bin2hex(random_bytes(8));
-    mkdir($root . '/bin', 0700, true);
+    mkdir($root, 0700, true);
     mkdir($root . '/source', 0700, true);
     symlink(realpath(__DIR__ . '/../vendor'), $root . '/vendor');
-    foreach (['sync', 'clear', 'common.php'] as $file) {
-        copy(__DIR__ . '/../bin/' . $file, "$root/bin/$file");
-    }
+    copy(__DIR__ . '/../linker', "$root/linker");
+    chmod("$root/linker", 0700);
     file_put_contents($root . '/source/model.bin', 'model');
     file_put_contents($root . '/destination-file', 'keep');
     $yaml = "lookupKeys: [models]\nsource:\n  models:\n    - meta: {enabled: true}\n      baseDirectory: $root/source\n      weightsList: [model.bin]\ndestination: {models: $root/destination-file}\n";

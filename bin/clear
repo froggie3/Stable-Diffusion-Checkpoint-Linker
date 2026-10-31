@@ -1,9 +1,0 @@
-#!/usr/bin/env php
-<?php
-
-declare(strict_types=1);
-
-require __DIR__ . '/../vendor/autoload.php';
-use Iigau\StableDiffusionCheckpointLinker\Console\CliApplication;
-
-exit((new CliApplication(dirname(__DIR__)))->run('clear', array_slice($argv, 1)));

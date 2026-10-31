@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 $root = dirname(__DIR__);
-$directories = ['src', 'bin', 'tests', 'config', 'scripts'];
-$files = [$root . '/.php-cs-fixer.dist.php', $root . '/bin/sync', $root . '/bin/clear'];
+$directories = ['src', 'tests', 'config', 'scripts'];
+$files = [$root . '/.php-cs-fixer.dist.php', $root . '/linker'];
 
 foreach ($directories as $directory) {
     $path = $root . '/' . $directory;

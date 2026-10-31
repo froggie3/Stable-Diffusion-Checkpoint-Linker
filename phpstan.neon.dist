@@ -4,9 +4,7 @@ parameters:
     tmpDir: .cache/phpstan
     paths:
         - src
-        - bin
         - tests
         - scripts
         - .php-cs-fixer.dist.php
-        - bin/sync
-        - bin/clear
+        - linker
