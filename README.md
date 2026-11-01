@@ -15,7 +15,12 @@ it does not copy or modify the model files themselves. It targets GNU/Linux.
 git clone https://github.com/froggie3/Stable-Diffusion-Checkpoint-Linker.git
 cd Stable-Diffusion-Checkpoint-Linker
 composer install
+echo export PATH="$(pwd)/bin" >> ~/.bashrc
 ```
+
+The `PATH` line takes effect in new shells; run `source ~/.bashrc` to apply it
+to the current one. After that, the examples below run as `linker`; from the
+checkout root you can also run `./bin/linker` without any `PATH` change.
 
 The first successful operation creates the management database at
 `data/links.sqlite` when needed. Keep this file: it records which links SD-Linker
@@ -45,8 +50,8 @@ Copy `config/example.yaml`, then edit the copy for your model and destination
 directories. The programs read YAML from standard input:
 
 ```bash
-./bin/linker sync < /path/to/config.yaml
-./bin/linker clear < /path/to/config.yaml
+linker sync < /path/to/config.yaml
+linker clear < /path/to/config.yaml
 ```
 
 Alternatively, pass the configuration file as a positional argument. When a
@@ -54,23 +59,23 @@ file is supplied, standard input is ignored; options can appear before or
 after the file. Use `--` before a file name that begins with `-`:
 
 ```bash
-./bin/linker sync --dry-run /path/to/config.yaml
-./bin/linker clear /path/to/config.yaml --verbose
-./bin/linker sync -- -config.yaml
+linker sync --dry-run /path/to/config.yaml
+linker clear /path/to/config.yaml --verbose
+linker sync -- -config.yaml
 ```
 
 Use `edit` to open a configuration file without validating its YAML, reading
 standard input, accessing the management database, or running a sync:
 
 ```bash
-./bin/linker edit /path/to/config.yaml
-./bin/linker edit /path/to/config.yaml /usr/bin/code --wait
+linker edit /path/to/config.yaml
+linker edit /path/to/config.yaml /usr/bin/code --wait
 ```
 
 When no editor is given, `VISUAL` is used before `EDITOR`; either environment
 value is treated as a shell command. An editor supplied on the command line is
 executed directly without a shell. In both cases the config path is appended
-as the editor's final argument. `./bin/linker edit --help` shows the details.
+as the editor's final argument. `linker edit --help` shows the details.
 
 `sync` creates or updates the selected links. `clear` removes links that the
 management database confirms belong to SD-Linker and that are described by the
@@ -83,15 +88,15 @@ successful-operation details. The repeatable
 in that configuration's `lookupKeys` list. For example:
 
 ```bash
-./bin/linker sync --dry-run --category checkpoint < /path/to/config.yaml
-./bin/linker clear --category checkpoint --category lora < /path/to/config.yaml
+linker sync --dry-run --category checkpoint < /path/to/config.yaml
+linker clear --category checkpoint --category lora < /path/to/config.yaml
 ```
 
 A category outside `lookupKeys` is an error. `--dry-run` performs configuration
 and operation checks and reports the planned work without changing links or the
 management database.
 
-Run `./bin/linker --help` for the command list, or `./bin/linker <command> --help` for
+Run `linker --help` for the command list, or `linker <command> --help` for
 the full command reference.
 
 ## Configuration and command reference
@@ -104,7 +109,7 @@ literal: `~`, environment variables, and glob patterns are not expanded.
 destination; entries containing `..` are rejected. Quote paths and filenames
 when YAML could interpret them as another type.
 
-See `./bin/linker sync --help` or `./bin/linker clear --help` for the full key schema,
+See `linker sync --help` or `linker clear --help` for the full key schema,
 defaults, selection behavior, safety rules, output streams, and exit codes.
 Help prints without reading standard input or opening the database.
 

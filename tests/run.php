@@ -278,7 +278,7 @@ try {
         test("$command detailed help is direct and does not read stdin or initialize the DB", function () use ($root, $command): void {
             [$status, $stdout, $stderr] = runCommandWithOpenStdin($root, [$command, '--help']);
             check($status === 0 && $stderr === '', "$command help failed.");
-            check(str_contains($stdout, "Usage: ./bin/linker $command") && str_contains($stdout, 'Exit codes:'), "$command help is incomplete.");
+            check(str_contains($stdout, "Usage: linker $command") && str_contains($stdout, 'Exit codes:'), "$command help is incomplete.");
             check(!file_exists($root . '/data'), "$command help initialized the database.");
         });
     }
@@ -290,7 +290,7 @@ try {
     test('edit help does not read stdin or initialize the DB', function () use ($root): void {
         [$status, $stdout, $stderr] = runCommandWithOpenStdin($root, ['edit', '--help']);
         check($status === 0 && $stderr === '', 'edit help failed.');
-        check(str_contains($stdout, 'Usage: ./bin/linker edit CONFIG [EDITOR [ARGS...]]'), 'edit help is incomplete.');
+        check(str_contains($stdout, 'Usage: linker edit CONFIG [EDITOR [ARGS...]]'), 'edit help is incomplete.');
         check(!file_exists($root . '/data'), 'edit help initialized the database.');
     });
     test('edit without CONFIG is an argument error', function () use ($root): void {

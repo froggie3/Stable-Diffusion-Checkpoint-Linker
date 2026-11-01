@@ -255,14 +255,14 @@ final class CliApplication
     {
         $output = new ConsoleOutput();
         foreach ([
-            'Usage: ./bin/linker <command> [OPTIONS] [CONFIG]',
+            'Usage: linker <command> [OPTIONS] [CONFIG]',
             '',
             'Commands:',
             '  sync     ' . Command::SYNC->description(),
             '  clear    ' . Command::CLEAR->description(),
             '  edit     ' . Command::EDIT->description(),
             '',
-            'Run ./bin/linker <command> --help for configuration, options, safety, and output details.',
+            'Run linker <command> --help for configuration, options, safety, and output details.',
             'Configuration is read from CONFIG when provided, otherwise from standard input (< config.yaml). Help does not read input or open the database.',
         ] as $line) {
             $output->line($line);
@@ -273,7 +273,7 @@ final class CliApplication
     {
         $output = new ConsoleOutput();
         foreach ([
-            'Usage: ./bin/linker edit CONFIG [EDITOR [ARGS...]]',
+            'Usage: linker edit CONFIG [EDITOR [ARGS...]]',
             '',
             'Open CONFIG in an editor. This command does not read or validate YAML, access the database, or run sync.',
             'If EDITOR is omitted, VISUAL is used, then EDITOR. The selected environment value is a shell command; CONFIG is passed as one final argument.',
@@ -292,7 +292,7 @@ final class CliApplication
             ? 'Remove only links that the management database confirms are managed and that this configuration lists.'
             : 'Create, repair, replace, register, or remove the links selected by this configuration.';
         $lines = [
-            "Usage: ./bin/linker {$command->value} [OPTIONS] [CONFIG]",
+            "Usage: linker {$command->value} [OPTIONS] [CONFIG]",
             '',
             $modeAction,
             'Configuration is read from CONFIG when provided, otherwise from standard input (< config.yaml). --help does not read input or open the database.',
@@ -304,9 +304,9 @@ final class CliApplication
             '  --category NAME            limit to a lookupKeys category (repeatable; --category=NAME is also accepted).',
             '',
             'Examples:',
-            "  ./bin/linker {$command->value} --help",
-            "  ./bin/linker {$command->value} --dry-run < config.yaml",
-            "  ./bin/linker {$command->value} -v --category checkpoint < config.yaml",
+            "  linker {$command->value} --help",
+            "  linker {$command->value} --dry-run < config.yaml",
+            "  linker {$command->value} -v --category checkpoint < config.yaml",
             '',
             'Minimal YAML configuration:',
             '  lookupKeys: [checkpoint]',
