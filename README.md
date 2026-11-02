@@ -15,7 +15,7 @@ it does not copy or modify the model files themselves. It targets GNU/Linux.
 git clone https://github.com/froggie3/Stable-Diffusion-Checkpoint-Linker.git
 cd Stable-Diffusion-Checkpoint-Linker
 composer install
-echo export PATH="$(pwd)/bin" >> ~/.bashrc
+echo "export PATH=\"$(pwd)/bin:\$PATH\"" >> ~/.bashrc
 ```
 
 The `PATH` line takes effect in new shells; run `source ~/.bashrc` to apply it
