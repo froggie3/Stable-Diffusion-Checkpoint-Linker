@@ -23,8 +23,25 @@ to the current one. After that, the examples below run as `linker`; from the
 checkout root you can also run `./bin/linker` without any `PATH` change.
 
 The first successful operation creates the management database at
-`data/links.sqlite` when needed. Keep this file: it records which links SD-Linker
-manages. The `data/` directory is ignored by Git.
+`data/links.sqlite` by default when needed. Keep this file: it records which links
+SD-Linker manages. The `data/` directory is ignored by Git.
+
+Application settings are optional. To customize the configuration directory or
+database location, copy `setting.example.ini` to `setting.ini` in the checkout
+root and edit it. `setting.ini` is ignored by Git:
+
+```ini
+configuration_dir = "config"
+database_path = "data/links.sqlite"
+```
+
+Both settings default to the values shown when omitted or when `setting.ini` is
+absent. Unknown settings, empty paths, and invalid INI are errors. Relative paths
+are resolved against the checkout root, regardless of the current working
+directory; absolute paths are also supported. Paths are literal, with no shell
+expansion. Changing the
+database path does not move existing records: copy the existing database to the
+new location if you want to retain them. Keep custom database files out of Git.
 
 ## Agent skill
 
@@ -53,6 +70,19 @@ directories. The programs read YAML from standard input:
 linker sync < /path/to/config.yaml
 linker clear < /path/to/config.yaml
 ```
+
+Use `linker list` to discover local configuration files under the configured
+`configuration_dir` (default `config`):
+
+```bash
+linker list
+```
+
+It recursively prints absolute paths to `.yaml` and `.yml` files (case-insensitive
+extensions), one per line, sorted lexically, without following directory symlinks
+or validating YAML. An
+empty directory produces no output; a missing or unreadable directory is an
+error. Listing does not read stdin or access the database.
 
 Alternatively, pass the configuration file as a positional argument. When a
 file is supplied, standard input is ignored; options can appear before or

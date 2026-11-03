@@ -4,3 +4,4 @@ config/config*
 .cache/
 **/test-*/
 data/
+/setting.ini

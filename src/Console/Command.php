@@ -9,6 +9,7 @@ enum Command: string
     case SYNC = 'sync';
     case CLEAR = 'clear';
     case EDIT = 'edit';
+    case LIST = 'list';
 
     public function description(): string
     {
@@ -16,6 +17,7 @@ enum Command: string
             self::SYNC => 'Create, repair, replace, register, or remove selected links.',
             self::CLEAR => 'Remove only links confirmed as managed and listed in the configuration.',
             self::EDIT => 'Open a configuration file in an editor.',
+            self::LIST => 'List local YAML configuration files.',
         };
     }
 }

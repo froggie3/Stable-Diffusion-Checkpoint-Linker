@@ -717,6 +717,9 @@ test('destination parent file is rejected before database initialization', funct
 });
 
 require __DIR__ . '/safety.php';
+require __DIR__ . '/cli-parser.php';
+require __DIR__ . '/settings.php';
+require __DIR__ . '/list.php';
 
 $testRunner->report();
 exit($testRunner->exitCode());
